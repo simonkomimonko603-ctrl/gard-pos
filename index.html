@@ -151,7 +151,7 @@
 
                     <div class="space-y-2">
                         <button onclick="sendToKitchen()" class="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold py-3 rounded-xl transition flex items-center justify-center gap-2 shadow-lg shadow-amber-600/20 text-sm">
-                            <i class="fa-solid fa-paper-plane"></i> Odoslať na KDS (Kuchyňa/Bar)
+                            <i class="fa-solid fa-paper-plane"></i> Odoslať na KDS & Uložiť na účet
                         </button>
                         <button onclick="openPaymentModal()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3.5 rounded-xl text-lg shadow-lg shadow-emerald-600/20 transition flex items-center justify-center gap-2">
                             <i class="fa-solid fa-credit-card"></i> PLATBA
@@ -229,7 +229,7 @@
                 <div class="flex justify-between items-center mb-6">
                     <div>
                         <h2 class="text-xl font-bold text-slate-100">Správa izieb a stolov</h2>
-                        <p class="text-sm text-slate-400">Správa miestností pre priraďovanie objednávok.</p>
+                        <p class="text-sm text-slate-400">Kliknite na izbu pre jej výber a zobrazenie jej otvoreného účtu.</p>
                     </div>
                     <button onclick="openRoomModal()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 transition shadow-lg shadow-emerald-600/20">
                         <i class="fa-solid fa-plus"></i> Pridať izbu / stôl
@@ -458,11 +458,12 @@
         { id: 1, name: "Espresso", category: "Káva & Nápoje", price: 2.20, stock: 150, unit: "ks" }
     ];
 
-    let rooms = [
-        { id: 'main', name: 'Hlavná' },
-        { id: 'room1', name: 'Stôl 1' },
-        { id: 'room2', name: 'Stôl 2' },
-        { id: 'room3', name: 'Izba 101' }
+    // Izby s otvorenými košíkmi / účtami
+    let rooms = JSON.parse(localStorage.getItem('pos_rooms')) || [
+        { id: 'main', name: 'Hlavná', cart: [] },
+        { id: 'room1', name: 'Stôl 1', cart: [] },
+        { id: 'room2', name: 'Stôl 2', cart: [] },
+        { id: 'room3', name: 'Izba 101', cart: [] }
     ];
 
     let loyaltyCards = [
@@ -471,7 +472,6 @@
 
     let kdsTransactions = JSON.parse(localStorage.getItem('pos_kds_transactions')) || [];
 
-    let currentCart = [];
     let activeRoomId = 'main';
     let activeCustomerLoyalty = null;
     let selectedCategory = 'All';
@@ -545,6 +545,7 @@
             renderStock();
             renderLoyaltyTable();
             renderTransactionsTable();
+            renderCart();
             initCharts();
         } else {
             document.getElementById('pin-error').classList.remove('hidden');
@@ -577,6 +578,8 @@
             updateAnalyticsAndCharts();
         } else if(tab === 'transactions') {
             renderTransactionsTable();
+        } else if(tab === 'rooms') {
+            renderRooms();
         }
     }
 
@@ -615,7 +618,17 @@
         `).join('');
     }
 
-    // --- CART LOGIC ---
+    // --- CART LOGIC PER ROOM ---
+    function getCurrentRoom() {
+        let room = rooms.find(r => r.id === activeRoomId);
+        if(!room) {
+            room = rooms[0];
+            activeRoomId = room.id;
+        }
+        if(!room.cart) room.cart = [];
+        return room;
+    }
+
     function addToCart(productId) {
         const product = products.find(p => p.id === productId);
         if (!product) return;
@@ -625,7 +638,8 @@
             return;
         }
 
-        const existing = currentCart.find(item => item.product.id === productId);
+        const room = getCurrentRoom();
+        const existing = room.cart.find(item => item.product.id === productId);
         if (existing) {
             if (existing.qty + 1 > product.stock) {
                 alert("Nemožno pridať viac, než je na sklade.");
@@ -633,14 +647,16 @@
             }
             existing.qty += 1;
         } else {
-            currentCart.push({ product: product, qty: 1 });
+            room.cart.push({ product: product, qty: 1 });
         }
 
+        saveRoomsToStorage();
         renderCart();
     }
 
     function updateCartQty(productId, delta) {
-        const item = currentCart.find(i => i.product.id === productId);
+        const room = getCurrentRoom();
+        const item = room.cart.find(i => i.product.id === productId);
         if (!item) return;
 
         item.qty += delta;
@@ -650,20 +666,25 @@
         }
 
         if (item.qty <= 0) {
-            currentCart = currentCart.filter(i => i.product.id !== productId);
+            room.cart = room.cart.filter(i => i.product.id !== productId);
         }
 
+        saveRoomsToStorage();
         renderCart();
     }
 
     function clearCart() {
-        currentCart = [];
+        const room = getCurrentRoom();
+        room.cart = [];
+        saveRoomsToStorage();
         renderCart();
     }
 
     function renderCart() {
+        const room = getCurrentRoom();
         const container = document.getElementById('order-items');
-        if (currentCart.length === 0) {
+        
+        if (!room.cart || room.cart.length === 0) {
             container.innerHTML = `<div class="text-center text-slate-500 mt-10">Účet je zatiaľ prázdny</div>`;
             document.getElementById('subtotal-val').innerText = '0.00 €';
             document.getElementById('discount-val').innerText = '0.00 €';
@@ -672,7 +693,7 @@
         }
 
         let subtotal = 0;
-        container.innerHTML = currentCart.map(item => {
+        container.innerHTML = room.cart.map(item => {
             const itemTotal = item.product.price * item.qty;
             subtotal += itemTotal;
             return `
@@ -706,33 +727,35 @@
         renderCart();
     }
 
-    // --- KDS ODOSLANIE -> RÁTA SA DO GRAFOV + ODPOČÍTA SKLAD ---
+    // --- KDS ODOSLANIE -> ULOŽÍ SA NA ÚČET & RÁTA SA DO GRAFOV ---
     function sendToKitchen() {
-        if (currentCart.length === 0) {
+        const room = getCurrentRoom();
+        if (!room.cart || room.cart.length === 0) {
             alert("Účet je prázdny!");
             return;
         }
 
         const total = parseFloat(document.getElementById('total-val').innerText);
         const now = new Date();
-        const roomName = rooms.find(r => r.id === activeRoomId)?.name || 'Hlavná';
 
-        currentCart.forEach(item => {
+        // Odpísanie zo skladu
+        room.cart.forEach(item => {
             const p = products.find(prod => prod.id === item.product.id);
             if (p) {
                 p.stock -= item.qty;
             }
         });
 
+        // Zapísanie KDS transakcie pre analytiku
         const kdsOrder = {
             id: Date.now(),
             timestamp: now.toISOString(),
             timeStr: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
             hour: now.getHours(),
-            room: roomName,
+            room: room.name,
             total: total,
             includeInAnalytics: true,
-            items: currentCart.map(i => ({
+            items: room.cart.map(i => ({
                 id: i.product.id,
                 name: i.product.name,
                 qty: i.qty,
@@ -744,12 +767,12 @@
         kdsTransactions.push(kdsOrder);
         localStorage.setItem('pos_kds_transactions', JSON.stringify(kdsTransactions));
         saveProductsToStorage();
+        saveRoomsToStorage();
 
         renderProducts();
         renderStock();
-        alert("Objednávka bola odoslaná na KDS, položky odpočítané zo skladu a zarátané do grafov!");
+        alert(`Objednávka bola odoslaná na KDS pre ${room.name}! Účet zostáva uložený pre platbu.`);
         
-        clearCart();
         updateAnalyticsAndCharts();
     }
 
@@ -791,7 +814,8 @@
 
     // --- PAYMENT MODAL & FLOW ---
     function openPaymentModal() {
-        if (currentCart.length === 0) {
+        const room = getCurrentRoom();
+        if (!room.cart || room.cart.length === 0) {
             alert("Účet je prázdny!");
             return;
         }
@@ -862,7 +886,7 @@
             alert(`Platba ${total.toFixed(2)} € bola uhradená (${method}). Zákazník ${activeCustomerLoyalty.name} získal +${pointsEarned} bodov!`);
             renderLoyaltyTable();
         } else {
-            alert(`Platba ${total.toFixed(2)} € úspešne uhradená (${method}).`);
+            alert(`Platba ${total.toFixed(2)} € bola úspešne vyrovnaná (${method}).`);
         }
 
         clearCart();
@@ -1030,24 +1054,43 @@
         localStorage.setItem('pos_products', JSON.stringify(products));
     }
 
+    function saveRoomsToStorage() {
+        localStorage.setItem('pos_rooms', JSON.stringify(rooms));
+    }
+
     // --- ROOMS MANAGEMENT ---
     function renderRooms() {
         const grid = document.getElementById('rooms-list-grid');
-        grid.innerHTML = rooms.map(r => `
-            <div class="border border-slate-800 rounded-2xl p-4 bg-slate-950/80 flex flex-col justify-between shadow-xl">
-                <div class="font-bold text-slate-100 text-lg mb-2">${r.name}</div>
-                <div class="flex gap-2 mt-4">
-                    <button onclick="selectRoom('${r.id}', '${r.name}')" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white text-xs py-2 rounded-xl font-bold transition">Vybrať</button>
-                    <button onclick="editRoom('${r.id}')" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs px-2.5 py-2 rounded-xl transition"><i class="fa-solid fa-pen"></i></button>
-                    <button onclick="deleteRoom('${r.id}')" class="bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 text-xs px-2.5 py-2 rounded-xl transition"><i class="fa-solid fa-trash"></i></button>
+        grid.innerHTML = rooms.map(r => {
+            const isSelected = r.id === activeRoomId;
+            const itemCount = r.cart ? r.cart.reduce((a, b) => a + b.qty, 0) : 0;
+            const roomTotal = r.cart ? r.cart.reduce((a, b) => a + (b.product.price * b.qty), 0) : 0;
+
+            return `
+                <div class="border ${isSelected ? 'border-emerald-500 bg-emerald-950/20' : 'border-slate-800 bg-slate-950/80'} rounded-2xl p-4 flex flex-col justify-between shadow-xl transition">
+                    <div>
+                        <div class="flex justify-between items-center mb-1">
+                            <span class="font-bold text-slate-100 text-lg">${r.name}</span>
+                            ${itemCount > 0 ? `<span class="text-xs bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2 py-0.5 rounded-full font-bold">${itemCount} položiek</span>` : '<span class="text-xs text-slate-500">Prázdny</span>'}
+                        </div>
+                        <div class="text-sm font-black text-emerald-400">${roomTotal.toFixed(2)} €</div>
+                    </div>
+                    <div class="flex gap-2 mt-4">
+                        <button onclick="selectRoom('${r.id}', '${r.name}')" class="flex-1 ${isSelected ? 'bg-emerald-600 text-white' : 'bg-slate-800 hover:bg-slate-700 text-slate-200'} text-xs py-2 rounded-xl font-bold transition">
+                            ${isSelected ? 'Vybraná' : 'Otvoriť účet'}
+                        </button>
+                        <button onclick="editRoom('${r.id}')" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs px-2.5 py-2 rounded-xl transition"><i class="fa-solid fa-pen"></i></button>
+                        <button onclick="deleteRoom('${r.id}')" class="bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 text-xs px-2.5 py-2 rounded-xl transition"><i class="fa-solid fa-trash"></i></button>
+                    </div>
                 </div>
-            </div>
-        `).join('');
+            `;
+        }).join('');
     }
 
     function selectRoom(id, name) {
         activeRoomId = id;
         document.getElementById('active-room-display').innerText = `Stôl / Izba: ${name}`;
+        renderCart();
         switchTab('pos');
     }
 
@@ -1072,9 +1115,10 @@
             const r = rooms.find(room => room.id === id);
             if (r) r.name = name;
         } else {
-            rooms.push({ id: 'room_' + Date.now(), name: name });
+            rooms.push({ id: 'room_' + Date.now(), name: name, cart: [] });
         }
 
+        saveRoomsToStorage();
         closeRoomModal();
         renderRooms();
     }
@@ -1090,6 +1134,10 @@
         }
         if (confirm("Naozaj chcete odstrániť túto izbu?")) {
             rooms = rooms.filter(r => r.id !== id);
+            if(activeRoomId === id) {
+                activeRoomId = 'main';
+            }
+            saveRoomsToStorage();
             renderRooms();
         }
     }
