@@ -31,7 +31,7 @@
 <body class="h-screen flex flex-col font-sans overflow-hidden bg-slate-950 text-slate-100 select-none">
 
 <script>
-    // Vaša konfigurácia z obrázka:
+    // Konfigurácia Firebase
     const firebaseConfig = {
         apiKey: "AIzaSyDNReaEooXx-6k5L7xQVRugHQ_aPAjCLIw",
         authDomain: "gard-pos.firebaseapp.com",
@@ -295,6 +295,9 @@
                         <p class="text-sm text-slate-400">Pridávanie, úprava cien a skladových zásob.</p>
                     </div>
                     <div class="flex gap-2">
+                        <button onclick="importApexCatalog()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 transition shadow-lg shadow-indigo-600/20">
+                            <i class="fa-solid fa-cloud-arrow-up"></i> 🚀 Importovať Katalóg
+                        </button>
                         <button onclick="openCategoriesManageModal()" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 px-4 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 transition">
                             <i class="fa-solid fa-list"></i> Správa Kategórií
                         </button>
@@ -521,7 +524,7 @@
     let enteredPin = '';
 
     // --- REALTIME STATE ---
-    let categoriesList = ["Káva & Nápoje", "Jedlo", "Dezerty", "Rôzne"];
+    let categoriesList = ["Káva", "Nealko napoje", "Voda", "Alkohol", "Víno", "Cocktaily", "Rôzne"];
     let products = [];
     let rooms = [{ id: 'main', name: 'Hlavná', cart: [] }];
     let loyaltyCards = [];
@@ -533,6 +536,87 @@
 
     let barChart = null;
     let pieChart = null;
+
+    // DATA PRE IMPORT Z APEX POS
+    const apexCatalogProducts = [
+        { name: "Espresso", category: "Káva", price: 1.60, stock: 100, unit: "ks" },
+        { name: "Cappuccino", category: "Káva", price: 2.49, stock: 100, unit: "ks" },
+        { name: "Americano", category: "Káva", price: 2.19, stock: 100, unit: "ks" },
+        { name: "Ľadová káva", category: "Káva", price: 2.49, stock: 100, unit: "ks" },
+        
+        { name: "Márka", category: "Nealko napoje", price: 1.49, stock: 100, unit: "ks" },
+        { name: "San Pellegrino Naturali", category: "Nealko napoje", price: 2.00, stock: 100, unit: "ks" },
+        { name: "Pepsi normal", category: "Nealko napoje", price: 1.59, stock: 100, unit: "ks" },
+        { name: "Limonáda Pomaranč", category: "Nealko napoje", price: 2.99, stock: 100, unit: "ks" },
+        { name: "Limonáda Citron", category: "Nealko napoje", price: 2.29, stock: 100, unit: "ks" },
+        { name: "Limonáda jahoda", category: "Nealko napoje", price: 2.49, stock: 100, unit: "ks" },
+        { name: "Horúca Čokoláda", category: "Nealko napoje", price: 2.99, stock: 100, unit: "ks" },
+        { name: "Pepsi Zero", category: "Nealko napoje", price: 1.59, stock: 100, unit: "ks" },
+        { name: "Pepsi sklo", category: "Nealko napoje", price: 2.00, stock: 100, unit: "ks" },
+        { name: "Cedevita", category: "Nealko napoje", price: 1.79, stock: 100, unit: "ks" },
+        { name: "Relax limonáda malina", category: "Nealko napoje", price: 1.59, stock: 100, unit: "ks" },
+        { name: "1 eur produkt Ine", category: "Nealko napoje", price: 1.00, stock: 100, unit: "ks" },
+
+        { name: "Rajec siteny sklo", category: "Voda", price: 1.79, stock: 100, unit: "ks" },
+        { name: "San Pellegrino velka", category: "Voda", price: 2.99, stock: 100, unit: "ks" },
+        { name: "San Pellegrino", category: "Voda", price: 1.59, stock: 100, unit: "ks" },
+        { name: "Voda mala kaufland nesitemna", category: "Voda", price: 1.29, stock: 100, unit: "ks" },
+        { name: "Rajec", category: "Voda", price: 1.49, stock: 100, unit: "ks" },
+        { name: "Natura", category: "Voda", price: 1.59, stock: 100, unit: "ks" },
+
+        { name: "Pivo podľa ponuky", category: "Alkohol", price: 1.99, stock: 100, unit: "ks" },
+
+        { name: "Víno rozlievané podľa ponuky I", category: "Víno", price: 1.59, stock: 100, unit: "ks" },
+        { name: "Víno Rozlievané III", category: "Víno", price: 4.50, stock: 100, unit: "ks" },
+        { name: "Pinot Noir 21/22 Tajna", category: "Víno", price: 18.00, stock: 100, unit: "ks" },
+        { name: "Valdobbiadee Prosecco Superiore La Gioiosa", category: "Víno", price: 28.00, stock: 100, unit: "ks" },
+        { name: "Gran Cuvée Spumante Hamšík", category: "Víno", price: 24.00, stock: 100, unit: "ks" },
+        { name: "Muller Thurgau 21 Tajna", category: "Víno", price: 18.00, stock: 100, unit: "ks" },
+        { name: "Pálava 24 Topoľčianky", category: "Víno", price: 19.00, stock: 100, unit: "ks" },
+        { name: "Sauvignon Blanc Premium 2023 f", category: "Víno", price: 29.90, stock: 100, unit: "ks" },
+        { name: "Prosecco Pohar", category: "Víno", price: 2.20, stock: 100, unit: "ks" },
+        { name: "Víno rozlievané II", category: "Víno", price: 3.00, stock: 100, unit: "ks" },
+        { name: "Irsai Oliver - Chateau Topoľčianky", category: "Víno", price: 16.00, stock: 100, unit: "ks" },
+
+        { name: "Gin Fizz", category: "Cocktaily", price: 5.20, stock: 100, unit: "ks" },
+        { name: "Širley Temple", category: "Cocktaily", price: 3.49, stock: 100, unit: "ks" },
+        { name: "Nojito", category: "Cocktaily", price: 3.80, stock: 100, unit: "ks" },
+        { name: "Limoncello Spritz", category: "Cocktaily", price: 5.80, stock: 100, unit: "ks" },
+        { name: "Mojito", category: "Cocktaily", price: 5.50, stock: 100, unit: "ks" },
+        { name: "Lístok klasicky", category: "Cocktaily", price: 4.99, stock: 100, unit: "ks" },
+        { name: "Shirley Tample", category: "Cocktaily", price: 2.49, stock: 100, unit: "ks" },
+        { name: "The Golden Bee", category: "Cocktaily", price: 6.20, stock: 100, unit: "ks" },
+        { name: "Gin & Tonic", category: "Cocktaily", price: 5.50, stock: 100, unit: "ks" },
+        { name: "Cuba Libre", category: "Cocktaily", price: 4.80, stock: 100, unit: "ks" },
+        { name: "Aperol Sunset", category: "Cocktaily", price: 6.00, stock: 100, unit: "ks" },
+        { name: "Pink Lady Special", category: "Cocktaily", price: 6.50, stock: 100, unit: "ks" },
+        { name: "Tom Collins", category: "Cocktaily", price: 5.20, stock: 100, unit: "ks" },
+        { name: "Daiquiri", category: "Cocktaily", price: 4.90, stock: 100, unit: "ks" },
+        { name: "French 75", category: "Cocktaily", price: 6.80, stock: 100, unit: "ks" },
+        { name: "Šejk-o-Limonáda", category: "Cocktaily", price: 3.50, stock: 100, unit: "ks" },
+        { name: "Gin Rickey", category: "Cocktaily", price: 5.00, stock: 100, unit: "ks" },
+        { name: "Cucumber Cooler", category: "Cocktaily", price: 4.00, stock: 100, unit: "ks" },
+
+        { name: "Listok VIP", category: "Rôzne", price: 9.99, stock: 100, unit: "ks" }
+    ];
+
+    function importApexCatalog() {
+        if(confirm("Chcete automaticky importovať všetkých 44 produktov zo snímky do databázy?")) {
+            db.collection('settings').doc('categories').set({ list: categoriesList });
+
+            let batch = db.batch();
+            apexCatalogProducts.forEach(p => {
+                let docRef = db.collection('products').doc();
+                batch.set(docRef, p);
+            });
+
+            batch.commit().then(() => {
+                alert("🎉 Všetkých 44 produktov bolo úspešne pridaných do vašej cloudovej databázy!");
+            }).catch(err => {
+                alert("Chyba pri me hromadnom náhraní: " + err.message);
+            });
+        }
+    }
 
     // --- INITIALIZATION ---
     window.onload = function() {
