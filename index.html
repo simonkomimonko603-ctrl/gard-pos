@@ -3,13 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GARD POS - Professional Terminal</title>
+    <title>GARD POS - Cloud Synced Terminal</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Chart.js pre reálne grafy -->
+    <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- FontAwesome Pre Ikony -->
+    <!-- FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+
     <style>
         .modal { transition: opacity 0.25s ease; }
         body { background-color: #0b0f19; color: #f1f5f9; }
@@ -25,6 +30,22 @@
 </head>
 <body class="h-screen flex flex-col font-sans overflow-hidden bg-slate-950 text-slate-100 select-none">
 
+<script>
+    // Vaša konfigurácia z obrázka:
+    const firebaseConfig = {
+        apiKey: "AIzaSyDNReaEooXx-6k5L7xQVRugHQ_aPAjCLIw",
+        authDomain: "gard-pos.firebaseapp.com",
+        projectId: "gard-pos",
+        storageBucket: "gard-pos.firebasestorage.app",
+        messagingSenderId: "597035606534",
+        appId: "1:597035606534:web:824ebae8ea54a14c4f9987"
+    };
+
+    // Inicializácia Firebase
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+</script>
+
 <div id="app" class="h-full w-full flex flex-col">
 
     <!-- 1. SPLASH SCREEN -->
@@ -33,12 +54,12 @@
             G
         </div>
         <h1 class="text-3xl font-black tracking-wider mb-2">GARD <span class="text-emerald-400">POS</span></h1>
-        <p class="text-xs text-slate-400 mb-8 max-w-xs uppercase tracking-widest font-semibold">Smart Restaurant System</p>
+        <p class="text-xs text-slate-400 mb-8 max-w-xs uppercase tracking-widest font-semibold">Realtime Cloud System</p>
 
         <div class="w-48 bg-slate-900 h-2 rounded-full overflow-hidden border border-slate-800">
             <div id="splash-bar" class="bg-emerald-500 h-full rounded-full transition-all duration-300 w-0"></div>
         </div>
-        <p class="text-xs text-slate-500 mt-3 font-mono">Načítavam systém...</p>
+        <p class="text-xs text-slate-500 mt-3 font-mono">Pripájam k cloudu...</p>
     </div>
 
     <!-- 2. LOGIN MODAL / PIN PAD -->
@@ -48,7 +69,6 @@
             <h2 class="text-2xl font-bold mb-1">GARD POS</h2>
             <p class="text-xs text-slate-400 mb-6">Zadajte PIN pre prihlásenie</p>
 
-            <!-- PIN Indicator -->
             <div class="flex justify-center gap-3 mb-6">
                 <div id="pin-dot-1" class="w-4 h-4 rounded-full border-2 border-slate-700 bg-slate-950 transition-all duration-200"></div>
                 <div id="pin-dot-2" class="w-4 h-4 rounded-full border-2 border-slate-700 bg-slate-950 transition-all duration-200"></div>
@@ -56,7 +76,6 @@
                 <div id="pin-dot-4" class="w-4 h-4 rounded-full border-2 border-slate-700 bg-slate-950 transition-all duration-200"></div>
             </div>
 
-            <!-- PIN Keyboard -->
             <div class="grid grid-cols-3 gap-3 mb-6">
                 <button onclick="pressPin('1')" class="h-14 bg-slate-950 hover:bg-slate-800 border border-slate-800 text-xl font-bold rounded-2xl transition active:scale-95">1</button>
                 <button onclick="pressPin('2')" class="h-14 bg-slate-950 hover:bg-slate-800 border border-slate-800 text-xl font-bold rounded-2xl transition active:scale-95">2</button>
@@ -83,7 +102,7 @@
                 <div class="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center font-black text-emerald-400 text-xl shadow-inner">G</div>
                 <div>
                     <h1 class="text-xl font-black tracking-wider text-slate-100">GARD <span class="text-emerald-400">POS</span></h1>
-                    <p class="text-xs text-slate-400">Obsluha: <span id="current-user-display" class="text-emerald-400 font-bold">---</span></p>
+                    <p class="text-xs text-slate-400">Obsluha: <span id="current-user-display" class="text-emerald-400 font-bold">---</span> <span class="text-xs bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full ml-2 font-mono">LIVE CLOUD</span></p>
                 </div>
             </div>
             <nav class="flex space-x-2">
@@ -108,7 +127,12 @@
                 <div class="flex-1 bg-slate-900/60 border border-slate-800 rounded-2xl p-4 flex flex-col h-full shadow-2xl backdrop-blur-md">
                     <div class="flex justify-between items-center mb-4">
                         <h2 class="text-lg font-bold text-slate-100 flex items-center gap-2"><i class="fa-solid fa-utensils text-emerald-400"></i> Ponuka Produktov</h2>
-                        <div id="category-filters" class="flex gap-2"></div>
+                        <div class="flex items-center gap-3">
+                            <div id="category-filters" class="flex gap-2"></div>
+                            <button onclick="openCustomItemModal()" class="bg-amber-500/10 border border-amber-500/30 hover:bg-amber-500 text-amber-400 hover:text-slate-950 px-3.5 py-1.5 rounded-xl font-black text-xs transition flex items-center gap-1.5">
+                                <i class="fa-solid fa-bolt"></i> + Vlastná položka
+                            </button>
+                        </div>
                     </div>
                     <div id="products-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 overflow-y-auto flex-1 pr-1"></div>
                 </div>
@@ -270,9 +294,14 @@
                         <h2 class="text-xl font-bold text-slate-100">Správa Skladu & Produktov</h2>
                         <p class="text-sm text-slate-400">Pridávanie, úprava cien a skladových zásob.</p>
                     </div>
-                    <button onclick="openProductModal()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 transition shadow-lg shadow-emerald-600/20">
-                        <i class="fa-solid fa-plus"></i> + Pridať Nový Produkt
-                    </button>
+                    <div class="flex gap-2">
+                        <button onclick="openCategoriesManageModal()" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 px-4 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 transition">
+                            <i class="fa-solid fa-list"></i> Správa Kategórií
+                        </button>
+                        <button onclick="openProductModal()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 transition shadow-lg shadow-emerald-600/20">
+                            <i class="fa-solid fa-plus"></i> + Pridať Nový Produkt
+                        </button>
+                    </div>
                 </div>
                 <table class="w-full text-left border-collapse">
                     <thead>
@@ -291,6 +320,44 @@
         </main>
     </div>
 
+</div>
+
+<!-- MODAL: VLASTNÁ POLOŽKA -->
+<div id="custom-item-modal" class="fixed inset-0 bg-black/80 hidden items-center justify-center modal z-50 backdrop-blur-md">
+    <div class="bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl w-96 p-6 text-slate-100">
+        <h3 class="text-lg font-bold text-slate-100 mb-4 flex items-center gap-2"><i class="fa-solid fa-bolt text-amber-400"></i> Pridať vlastnú položku</h3>
+        <div class="space-y-3 mb-4">
+            <div>
+                <label class="block text-xs font-bold text-slate-400 mb-1">Názov položky:</label>
+                <input type="text" id="custom-item-name" class="w-full p-3 border border-slate-700 bg-slate-950 text-slate-100 rounded-xl text-sm focus:outline-none focus:border-amber-500" placeholder="napr. Denné Menu">
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-slate-400 mb-1">Cena v €:</label>
+                <input type="number" step="0.10" id="custom-item-price" class="w-full p-3 border border-slate-700 bg-slate-950 text-slate-100 rounded-xl text-sm focus:outline-none focus:border-amber-500" placeholder="6.50">
+            </div>
+        </div>
+        <div class="flex justify-end gap-2">
+            <button onclick="closeCustomItemModal()" class="px-4 py-2.5 border border-slate-700 rounded-xl text-xs font-bold hover:bg-slate-800 text-slate-300">Zrušiť</button>
+            <button onclick="addCustomItemToCart()" class="px-4 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-xl text-xs transition">Pridať iba do účtu</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: SPRÁVA KATEGÓRIÍ -->
+<div id="categories-modal" class="fixed inset-0 bg-black/80 hidden items-center justify-center modal z-50 backdrop-blur-md">
+    <div class="bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl w-[420px] p-6 text-slate-100">
+        <div class="flex justify-between items-center border-b border-slate-800 pb-3 mb-4">
+            <h3 class="text-lg font-bold text-slate-100">Správa Kategórií</h3>
+            <button onclick="closeCategoriesManageModal()" class="text-slate-400 hover:text-slate-200 text-xl font-bold">&times;</button>
+        </div>
+        
+        <div class="flex gap-2 mb-4">
+            <input type="text" id="new-cat-name-input" class="flex-1 p-2.5 border border-slate-700 bg-slate-950 text-slate-100 rounded-xl text-sm focus:outline-none focus:border-emerald-500" placeholder="Nová kategória...">
+            <button onclick="addNewCategory()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-3.5 py-2.5 rounded-xl font-bold text-xs transition">Pridať</button>
+        </div>
+
+        <div id="categories-manage-list" class="space-y-2 max-h-60 overflow-y-auto pr-1"></div>
+    </div>
 </div>
 
 <!-- MODAL: PLATBA -->
@@ -367,7 +434,7 @@
             <div class="grid grid-cols-2 gap-3">
                 <div>
                     <label class="block text-xs font-bold text-slate-400 mb-1">Kategória:</label>
-                    <input type="text" id="prod-cat-input" class="w-full p-3 border border-slate-700 bg-slate-950 text-slate-100 rounded-xl text-sm focus:outline-none focus:border-emerald-500" placeholder="napr. Nápoje">
+                    <select id="prod-cat-select" class="w-full p-3 border border-slate-700 bg-slate-950 text-slate-100 rounded-xl text-sm focus:outline-none focus:border-emerald-500"></select>
                 </div>
                 <div>
                     <label class="block text-xs font-bold text-slate-400 mb-1">Cena (€):</label>
@@ -443,9 +510,9 @@
     </div>
 </div>
 
-<!-- JAVASCRIPT LOGIC -->
+<!-- JAVASCRIPT REALTIME LOGIC -->
 <script>
-    // --- PIN & USERS ---
+    // --- USERS ---
     const users = [
         { pin: '1111', name: 'Šimon D.' },
         { pin: '2222', name: 'Dorota D.' }
@@ -453,24 +520,12 @@
     let currentUser = null;
     let enteredPin = '';
 
-    // --- PRODUCTS STATE ---
-    let products = JSON.parse(localStorage.getItem('pos_products')) || [
-        { id: 1, name: "Espresso", category: "Káva & Nápoje", price: 2.20, stock: 150, unit: "ks" }
-    ];
-
-    // Izby s otvorenými košíkmi / účtami
-    let rooms = JSON.parse(localStorage.getItem('pos_rooms')) || [
-        { id: 'main', name: 'Hlavná', cart: [] },
-        { id: 'room1', name: 'Stôl 1', cart: [] },
-        { id: 'room2', name: 'Stôl 2', cart: [] },
-        { id: 'room3', name: 'Izba 101', cart: [] }
-    ];
-
-    let loyaltyCards = [
-        { id: 1, name: "Šimon D.", code: "CARD-1001", points: 0, discount: 0 }
-    ];
-
-    let kdsTransactions = JSON.parse(localStorage.getItem('pos_kds_transactions')) || [];
+    // --- REALTIME STATE ---
+    let categoriesList = ["Káva & Nápoje", "Jedlo", "Dezerty", "Rôzne"];
+    let products = [];
+    let rooms = [{ id: 'main', name: 'Hlavná', cart: [] }];
+    let loyaltyCards = [];
+    let kdsTransactions = [];
 
     let activeRoomId = 'main';
     let activeCustomerLoyalty = null;
@@ -479,9 +534,10 @@
     let barChart = null;
     let pieChart = null;
 
-    // --- INITIALIZATION & SPLASH ---
+    // --- INITIALIZATION ---
     window.onload = function() {
         runSplash();
+        initRealtimeListeners();
     };
 
     function runSplash() {
@@ -502,6 +558,58 @@
                 }, 300);
             }
         }, 150);
+    }
+
+    // --- FIRESTORE REALTIME LISTENERS ---
+    function initRealtimeListeners() {
+        db.collection('settings').doc('categories').onSnapshot(doc => {
+            if(doc.exists && doc.data().list) {
+                categoriesList = doc.data().list;
+            } else {
+                db.collection('settings').doc('categories').set({ list: categoriesList });
+            }
+            renderCategories();
+        });
+
+        db.collection('products').onSnapshot(snapshot => {
+            products = [];
+            snapshot.forEach(doc => {
+                products.push({ id: doc.id, ...doc.data() });
+            });
+            renderCategories();
+            renderProducts();
+            renderStock();
+        });
+
+        db.collection('rooms').onSnapshot(snapshot => {
+            rooms = [];
+            snapshot.forEach(doc => {
+                rooms.push({ id: doc.id, ...doc.data() });
+            });
+            if(rooms.length === 0) {
+                db.collection('rooms').doc('main').set({ name: 'Hlavná', cart: [] });
+            } else {
+                renderRooms();
+                renderCart();
+            }
+        });
+
+        db.collection('transactions').onSnapshot(snapshot => {
+            kdsTransactions = [];
+            snapshot.forEach(doc => {
+                kdsTransactions.push({ id: doc.id, ...doc.data() });
+            });
+            renderTransactionsTable();
+            if(barChart) updateAnalyticsAndCharts();
+        });
+
+        db.collection('cards').onSnapshot(snapshot => {
+            loyaltyCards = [];
+            snapshot.forEach(doc => {
+                loyaltyCards.push({ id: doc.id, ...doc.data() });
+            });
+            renderLoyaltyTable();
+        });
     }
 
     // --- PIN LOGIC ---
@@ -583,15 +691,18 @@
         }
     }
 
-    // --- PRODUCTS & CATEGORIES ---
+    // --- CATEGORIES MANAGEMENT ---
     function renderCategories() {
-        const categories = ['All', ...new Set(products.map(p => p.category))];
+        const categories = ['All', ...categoriesList];
         const container = document.getElementById('category-filters');
         container.innerHTML = categories.map(c => `
             <button onclick="filterCategory('${c}')" class="px-3.5 py-1.5 text-xs rounded-xl border ${selectedCategory === c ? 'bg-emerald-600 text-white border-emerald-500' : 'bg-slate-950 border-slate-800 text-slate-400 hover:bg-slate-800'} font-bold transition">
                 ${c === 'All' ? 'Všetko' : c}
             </button>
         `).join('');
+
+        const select = document.getElementById('prod-cat-select');
+        select.innerHTML = categoriesList.map(c => `<option value="${c}">${c}</option>`).join('');
     }
 
     function filterCategory(cat) {
@@ -600,29 +711,108 @@
         renderProducts();
     }
 
+    function openCategoriesManageModal() {
+        renderCategoriesManageList();
+        document.getElementById('categories-modal').classList.remove('hidden');
+        document.getElementById('categories-modal').classList.add('flex');
+    }
+
+    function closeCategoriesManageModal() {
+        document.getElementById('categories-modal').classList.add('hidden');
+        document.getElementById('categories-modal').classList.remove('flex');
+    }
+
+    function renderCategoriesManageList() {
+        const list = document.getElementById('categories-manage-list');
+        list.innerHTML = categoriesList.map((c, index) => `
+            <div class="flex justify-between items-center bg-slate-950 p-2.5 rounded-xl border border-slate-800 text-sm">
+                <span class="font-bold text-slate-200">${c}</span>
+                <button onclick="deleteCategory(${index})" class="text-xs bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 px-2.5 py-1 rounded-lg transition"><i class="fa-solid fa-trash"></i></button>
+            </div>
+        `).join('');
+    }
+
+    function addNewCategory() {
+        const input = document.getElementById('new-cat-name-input');
+        const name = input.value.trim();
+        if(name && !categoriesList.includes(name)) {
+            categoriesList.push(name);
+            db.collection('settings').doc('categories').set({ list: categoriesList });
+            input.value = '';
+            renderCategoriesManageList();
+        }
+    }
+
+    function deleteCategory(index) {
+        if(confirm("Vymazať túto kategóriu?")) {
+            categoriesList.splice(index, 1);
+            db.collection('settings').doc('categories').set({ list: categoriesList });
+            renderCategoriesManageList();
+        }
+    }
+
+    // --- PRODUCTS DISPLAY ---
     function renderProducts() {
         const grid = document.getElementById('products-grid');
         const filtered = selectedCategory === 'All' ? products : products.filter(p => p.category === selectedCategory);
 
         grid.innerHTML = filtered.map(p => `
-            <div onclick="addToCart(${p.id})" class="bg-slate-950/80 border border-slate-800 hover:border-emerald-500/50 rounded-2xl p-4 cursor-pointer transition flex flex-col justify-between shadow-xl group">
+            <div onclick="addToCart('${p.id}')" class="bg-slate-950/80 border border-slate-800 hover:border-emerald-500/50 rounded-2xl p-4 cursor-pointer transition flex flex-col justify-between shadow-xl group">
                 <div>
                     <div class="font-bold text-slate-100 text-base mb-1 group-hover:text-emerald-400 transition">${p.name}</div>
                     <div class="text-xs text-slate-400">Sklad: <span class="${p.stock <= 10 ? 'text-rose-400 font-bold' : 'text-slate-300'}">${p.stock} ${p.unit}</span></div>
                 </div>
                 <div class="mt-4 flex justify-between items-center">
-                    <span class="text-emerald-400 font-black text-lg">${p.price.toFixed(2)} €</span>
+                    <span class="text-emerald-400 font-black text-lg">${parseFloat(p.price).toFixed(2)} €</span>
                     <span class="text-xs bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 p-2 rounded-xl group-hover:bg-emerald-600 group-hover:text-white transition"><i class="fa-solid fa-plus"></i></span>
                 </div>
             </div>
         `).join('');
     }
 
+    // --- CUSTOM ITEM MODAL LOGIC ---
+    function openCustomItemModal() {
+        document.getElementById('custom-item-name').value = '';
+        document.getElementById('custom-item-price').value = '';
+        document.getElementById('custom-item-modal').classList.remove('hidden');
+        document.getElementById('custom-item-modal').classList.add('flex');
+    }
+
+    function closeCustomItemModal() {
+        document.getElementById('custom-item-modal').classList.add('hidden');
+        document.getElementById('custom-item-modal').classList.remove('flex');
+    }
+
+    function addCustomItemToCart() {
+        const name = document.getElementById('custom-item-name').value.trim();
+        const price = parseFloat(document.getElementById('custom-item-price').value) || 0;
+
+        if (!name || price <= 0) {
+            alert("Zadajte platný názov a cenu položky!");
+            return;
+        }
+
+        const room = getCurrentRoom();
+        const customItemProduct = {
+            id: 'custom_' + Date.now(),
+            name: name,
+            price: price,
+            unit: 'ks',
+            stock: 999
+        };
+
+        if(!room.cart) room.cart = [];
+        room.cart.push({ product: customItemProduct, qty: 1 });
+
+        db.collection('rooms').doc(room.id).update({ cart: room.cart });
+        closeCustomItemModal();
+    }
+
     // --- CART LOGIC PER ROOM ---
     function getCurrentRoom() {
         let room = rooms.find(r => r.id === activeRoomId);
         if(!room) {
-            room = rooms[0];
+            room = rooms[0] || { id: 'main', name: 'Hlavná', cart: [] };
             activeRoomId = room.id;
         }
         if(!room.cart) room.cart = [];
@@ -639,6 +829,8 @@
         }
 
         const room = getCurrentRoom();
+        if(!room.cart) room.cart = [];
+        
         const existing = room.cart.find(item => item.product.id === productId);
         if (existing) {
             if (existing.qty + 1 > product.stock) {
@@ -650,8 +842,7 @@
             room.cart.push({ product: product, qty: 1 });
         }
 
-        saveRoomsToStorage();
-        renderCart();
+        db.collection('rooms').doc(room.id).update({ cart: room.cart });
     }
 
     function updateCartQty(productId, delta) {
@@ -669,15 +860,12 @@
             room.cart = room.cart.filter(i => i.product.id !== productId);
         }
 
-        saveRoomsToStorage();
-        renderCart();
+        db.collection('rooms').doc(room.id).update({ cart: room.cart });
     }
 
     function clearCart() {
         const room = getCurrentRoom();
-        room.cart = [];
-        saveRoomsToStorage();
-        renderCart();
+        db.collection('rooms').doc(room.id).update({ cart: [] });
     }
 
     function renderCart() {
@@ -700,12 +888,12 @@
                 <div class="flex justify-between items-center bg-slate-950/60 border border-slate-800 p-3 rounded-xl text-sm">
                     <div class="flex-1">
                         <div class="font-bold text-slate-200">${item.product.name}</div>
-                        <div class="text-xs text-slate-400">${item.product.price.toFixed(2)} € / ${item.product.unit}</div>
+                        <div class="text-xs text-slate-400">${parseFloat(item.product.price).toFixed(2)} € / ${item.product.unit}</div>
                     </div>
                     <div class="flex items-center gap-2">
-                        <button onclick="updateCartQty(${item.product.id}, -1)" class="w-7 h-7 bg-slate-800 hover:bg-slate-700 rounded-lg font-bold text-xs text-slate-200">-</button>
+                        <button onclick="updateCartQty('${item.product.id}', -1)" class="w-7 h-7 bg-slate-800 hover:bg-slate-700 rounded-lg font-bold text-xs text-slate-200">-</button>
                         <span class="font-bold text-slate-100 w-6 text-center">${item.qty}</span>
-                        <button onclick="updateCartQty(${item.product.id}, 1)" class="w-7 h-7 bg-slate-800 hover:bg-slate-700 rounded-lg font-bold text-xs text-slate-200">+</button>
+                        <button onclick="updateCartQty('${item.product.id}', 1)" class="w-7 h-7 bg-slate-800 hover:bg-slate-700 rounded-lg font-bold text-xs text-slate-200">+</button>
                     </div>
                     <div class="w-16 text-right font-black text-emerald-400">${itemTotal.toFixed(2)} €</div>
                 </div>
@@ -727,7 +915,7 @@
         renderCart();
     }
 
-    // --- KDS ODOSLANIE -> ULOŽÍ SA NA ÚČET & RÁTA SA DO GRAFOV ---
+    // --- KDS ODOSLANIE ---
     function sendToKitchen() {
         const room = getCurrentRoom();
         if (!room.cart || room.cart.length === 0) {
@@ -738,17 +926,15 @@
         const total = parseFloat(document.getElementById('total-val').innerText);
         const now = new Date();
 
-        // Odpísanie zo skladu
         room.cart.forEach(item => {
             const p = products.find(prod => prod.id === item.product.id);
             if (p) {
-                p.stock -= item.qty;
+                const newStock = p.stock - item.qty;
+                db.collection('products').doc(p.id).update({ stock: newStock });
             }
         });
 
-        // Zapísanie KDS transakcie pre analytiku
         const kdsOrder = {
-            id: Date.now(),
             timestamp: now.toISOString(),
             timeStr: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
             hour: now.getHours(),
@@ -764,16 +950,8 @@
             }))
         };
 
-        kdsTransactions.push(kdsOrder);
-        localStorage.setItem('pos_kds_transactions', JSON.stringify(kdsTransactions));
-        saveProductsToStorage();
-        saveRoomsToStorage();
-
-        renderProducts();
-        renderStock();
-        alert(`Objednávka bola odoslaná na KDS pre ${room.name}! Účet zostáva uložený pre platbu.`);
-        
-        updateAnalyticsAndCharts();
+        db.collection('transactions').add(kdsOrder);
+        alert(`Objednávka bola odoslaná na KDS pre ${room.name}!`);
     }
 
     function renderTransactionsTable() {
@@ -789,14 +967,14 @@
                 <tr class="hover:bg-slate-950/40">
                     <td class="p-4">
                         <label class="flex items-center gap-2 cursor-pointer">
-                            <input type="checkbox" ${t.includeInAnalytics ? 'checked' : ''} onchange="toggleTransactionAnalytics(${t.id})" class="w-4 h-4 accent-emerald-500 rounded">
+                            <input type="checkbox" ${t.includeInAnalytics ? 'checked' : ''} onchange="toggleTransactionAnalytics('${t.id}')" class="w-4 h-4 accent-emerald-500 rounded">
                             <span class="text-xs ${t.includeInAnalytics ? 'text-emerald-400 font-bold' : 'text-slate-500'}">${t.includeInAnalytics ? 'Započítané' : 'Vyradené'}</span>
                         </label>
                     </td>
                     <td class="p-4 text-slate-400 font-mono text-xs">${t.timeStr}</td>
                     <td class="p-4 font-bold text-slate-200">${t.room}</td>
                     <td class="p-4 text-slate-300 text-xs">${itemSummary}</td>
-                    <td class="p-4 font-black text-emerald-400">${t.total.toFixed(2)} €</td>
+                    <td class="p-4 font-black text-emerald-400">${parseFloat(t.total).toFixed(2)} €</td>
                 </tr>
             `;
         }).reverse().join('');
@@ -805,10 +983,7 @@
     function toggleTransactionAnalytics(id) {
         const t = kdsTransactions.find(item => item.id === id);
         if (t) {
-            t.includeInAnalytics = !t.includeInAnalytics;
-            localStorage.setItem('pos_kds_transactions', JSON.stringify(kdsTransactions));
-            renderTransactionsTable();
-            updateAnalyticsAndCharts();
+            db.collection('transactions').doc(id).update({ includeInAnalytics: !t.includeInAnalytics });
         }
     }
 
@@ -867,11 +1042,11 @@
         const partial = parseFloat(document.getElementById('partial-amount-input').value) || 0;
 
         if (partial <= 0 || partial >= total) {
-            alert("Zadajte platnú čiastočnú sumu (menšiu ako celková suma).");
+            alert("Zadajte platnú čiastočnú sumu.");
             return;
         }
 
-        alert(`Čiastočná platba ${partial.toFixed(2)} € bola prijatá (${method}). Zostáva doplaťiť: ${(total - partial).toFixed(2)} €.`);
+        alert(`Čiastočná platba ${partial.toFixed(2)} € bola prijatá (${method}).`);
         document.getElementById('total-val').innerText = `${(total - partial).toFixed(2)} €`;
         document.getElementById('modal-payment-amount').innerText = `${(total - partial).toFixed(2)} €`;
         document.getElementById('payment-detail-partial').classList.add('hidden');
@@ -882,9 +1057,9 @@
 
         if (activeCustomerLoyalty) {
             const pointsEarned = Math.floor(total);
-            activeCustomerLoyalty.points += pointsEarned;
-            alert(`Platba ${total.toFixed(2)} € bola uhradená (${method}). Zákazník ${activeCustomerLoyalty.name} získal +${pointsEarned} bodov!`);
-            renderLoyaltyTable();
+            const newPoints = activeCustomerLoyalty.points + pointsEarned;
+            db.collection('cards').doc(activeCustomerLoyalty.id).update({ points: newPoints });
+            alert(`Platba ${total.toFixed(2)} € bola uhradená (${method}). Zákazník získal +${pointsEarned} bodov!`);
         } else {
             alert(`Platba ${total.toFixed(2)} € bola úspešne vyrovnaná (${method}).`);
         }
@@ -893,7 +1068,7 @@
         closePaymentModal();
     }
 
-    // --- REAL-TIME ANALYTICS & CHARTS ---
+    // --- ANALYTICS & CHARTS ---
     function initCharts() {
         const ctxBar = document.getElementById('barChartHourly').getContext('2d');
         const ctxPie = document.getElementById('pieChartProducts').getContext('2d');
@@ -903,35 +1078,14 @@
 
         barChart = new Chart(ctxBar, {
             type: 'bar',
-            data: {
-                labels: [],
-                datasets: [{
-                    label: 'Tržby (€)',
-                    data: [],
-                    backgroundColor: '#10b981',
-                    borderRadius: 8
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: { y: { beginAtZero: true } }
-            }
+            data: { labels: [], datasets: [{ label: 'Tržby (€)', data: [], backgroundColor: '#10b981', borderRadius: 8 }] },
+            options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } } }
         });
 
         pieChart = new Chart(ctxPie, {
             type: 'pie',
-            data: {
-                labels: [],
-                datasets: [{
-                    data: [],
-                    backgroundColor: ['#10b981', '#3b82f6', '#f59e0b', '#ec4899', '#8b5cf6', '#64748b']
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false
-            }
+            data: { labels: [], datasets: [{ data: [], backgroundColor: ['#10b981', '#3b82f6', '#f59e0b', '#ec4899', '#8b5cf6', '#64748b'] }] },
+            options: { responsive: true, maintainAspectRatio: false }
         });
 
         updateAnalyticsAndCharts();
@@ -966,7 +1120,7 @@
         const barLabels = Object.keys(hourlyMap);
         const barData = Object.values(hourlyMap);
 
-        barChart.data.labels = barLabels.length > 0 ? barLabels : ['Žiadne KDS dáta'];
+        barChart.data.labels = barLabels.length > 0 ? barLabels : ['Žiadne dáta'];
         barChart.data.datasets[0].data = barData.length > 0 ? barData : [0];
         barChart.update();
 
@@ -981,18 +1135,19 @@
     // --- PRODUCT MANAGEMENT ---
     function openProductModal(editId = null) {
         document.getElementById('product-edit-id').value = editId || '';
+        renderCategories();
+
         if(editId) {
             const p = products.find(item => item.id === editId);
             document.getElementById('product-modal-title').innerText = "Upraviť Produkt";
             document.getElementById('prod-name-input').value = p.name;
-            document.getElementById('prod-cat-input').value = p.category;
+            document.getElementById('prod-cat-select').value = p.category;
             document.getElementById('prod-price-input').value = p.price;
             document.getElementById('prod-stock-input').value = p.stock;
             document.getElementById('prod-unit-input').value = p.unit;
         } else {
             document.getElementById('product-modal-title').innerText = "Pridať Nový Produkt";
             document.getElementById('prod-name-input').value = '';
-            document.getElementById('prod-cat-input').value = '';
             document.getElementById('prod-price-input').value = '';
             document.getElementById('prod-stock-input').value = '';
             document.getElementById('prod-unit-input').value = 'ks';
@@ -1010,7 +1165,7 @@
     function saveProduct() {
         const id = document.getElementById('product-edit-id').value;
         const name = document.getElementById('prod-name-input').value.trim();
-        const category = document.getElementById('prod-cat-input').value.trim() || 'Všeobecné';
+        const category = document.getElementById('prod-cat-select').value || 'Všeobecné';
         const price = parseFloat(document.getElementById('prod-price-input').value) || 0;
         const stock = parseInt(document.getElementById('prod-stock-input').value) || 0;
         const unit = document.getElementById('prod-unit-input').value;
@@ -1020,42 +1175,21 @@
             return;
         }
 
+        const data = { name, category, price, stock, unit };
+
         if(id) {
-            const p = products.find(item => item.id == id);
-            if(p) {
-                p.name = name;
-                p.category = category;
-                p.price = price;
-                p.stock = stock;
-                p.unit = unit;
-            }
+            db.collection('products').doc(id).update(data);
         } else {
-            products.push({ id: Date.now(), name, category, price, stock, unit });
+            db.collection('products').add(data);
         }
 
-        saveProductsToStorage();
         closeProductModal();
-        renderCategories();
-        renderProducts();
-        renderStock();
     }
 
     function deleteProduct(id) {
         if(confirm("Naozaj vymazať tento produkt?")) {
-            products = products.filter(p => p.id !== id);
-            saveProductsToStorage();
-            renderCategories();
-            renderProducts();
-            renderStock();
+            db.collection('products').doc(id).delete();
         }
-    }
-
-    function saveProductsToStorage() {
-        localStorage.setItem('pos_products', JSON.stringify(products));
-    }
-
-    function saveRoomsToStorage() {
-        localStorage.setItem('pos_rooms', JSON.stringify(rooms));
     }
 
     // --- ROOMS MANAGEMENT ---
@@ -1112,15 +1246,12 @@
         if (!name) return;
 
         if (id) {
-            const r = rooms.find(room => room.id === id);
-            if (r) r.name = name;
+            db.collection('rooms').doc(id).update({ name: name });
         } else {
-            rooms.push({ id: 'room_' + Date.now(), name: name, cart: [] });
+            db.collection('rooms').add({ name: name, cart: [] });
         }
 
-        saveRoomsToStorage();
         closeRoomModal();
-        renderRooms();
     }
 
     function editRoom(id) {
@@ -1133,12 +1264,8 @@
             return;
         }
         if (confirm("Naozaj chcete odstrániť túto izbu?")) {
-            rooms = rooms.filter(r => r.id !== id);
-            if(activeRoomId === id) {
-                activeRoomId = 'main';
-            }
-            saveRoomsToStorage();
-            renderRooms();
+            db.collection('rooms').doc(id).delete();
+            if(activeRoomId === id) activeRoomId = 'main';
         }
     }
 
@@ -1152,8 +1279,8 @@
                 <td class="p-4 font-bold text-emerald-400">${c.points} b</td>
                 <td class="p-4 font-bold text-amber-400">${c.discount} %</td>
                 <td class="p-4 text-right space-x-1">
-                    <button onclick="openCardModal(${c.id})" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-1.5 rounded-xl transition"><i class="fa-solid fa-pen"></i></button>
-                    <button onclick="deleteCard(${c.id})" class="text-xs bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 px-3 py-1.5 rounded-xl transition"><i class="fa-solid fa-trash"></i></button>
+                    <button onclick="openCardModal('${c.id}')" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-1.5 rounded-xl transition"><i class="fa-solid fa-pen"></i></button>
+                    <button onclick="deleteCard('${c.id}')" class="text-xs bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 px-3 py-1.5 rounded-xl transition"><i class="fa-solid fa-trash"></i></button>
                 </td>
             </tr>
         `).join('');
@@ -1200,26 +1327,20 @@
 
         if (!name || !code) return;
 
+        const data = { name, code, points, discount };
+
         if (id) {
-            const c = loyaltyCards.find(item => item.id == id);
-            if (c) {
-                c.name = name;
-                c.code = code;
-                c.points = points;
-                c.discount = discount;
-            }
+            db.collection('cards').doc(id).update(data);
         } else {
-            loyaltyCards.push({ id: Date.now(), name, code, points, discount });
+            db.collection('cards').add(data);
         }
 
         closeCardModal();
-        renderLoyaltyTable();
     }
 
     function deleteCard(id) {
         if (confirm("Vymazať vernostnú kartu?")) {
-            loyaltyCards = loyaltyCards.filter(c => c.id !== id);
-            renderLoyaltyTable();
+            db.collection('cards').doc(id).delete();
         }
     }
 
@@ -1230,12 +1351,12 @@
             <tr class="hover:bg-slate-950/40">
                 <td class="p-4 font-bold text-slate-100">${p.name}</td>
                 <td class="p-4 text-slate-400">${p.category}</td>
-                <td class="p-4 font-bold text-emerald-400">${p.price.toFixed(2)} €</td>
+                <td class="p-4 font-bold text-emerald-400">${parseFloat(p.price).toFixed(2)} €</td>
                 <td class="p-4 font-bold ${p.stock <= 10 ? 'text-rose-400' : 'text-slate-200'}">${p.stock} ${p.unit}</td>
                 <td class="p-4 text-right space-x-2">
-                    <button onclick="addStock(${p.id})" class="text-xs bg-emerald-500/10 border border-emerald-500/20 hover:bg-emerald-600 text-emerald-400 hover:text-white px-3 py-1.5 rounded-xl font-bold transition"><i class="fa-solid fa-plus mr-1"></i> +10</button>
-                    <button onclick="openProductModal(${p.id})" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-1.5 rounded-xl font-bold transition"><i class="fa-solid fa-pen"></i> Upraviť</button>
-                    <button onclick="deleteProduct(${p.id})" class="text-xs bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 px-3 py-1.5 rounded-xl font-bold transition"><i class="fa-solid fa-trash"></i></button>
+                    <button onclick="addStock('${p.id}')" class="text-xs bg-emerald-500/10 border border-emerald-500/20 hover:bg-emerald-600 text-emerald-400 hover:text-white px-3 py-1.5 rounded-xl font-bold transition"><i class="fa-solid fa-plus mr-1"></i> +10</button>
+                    <button onclick="openProductModal('${p.id}')" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-1.5 rounded-xl font-bold transition"><i class="fa-solid fa-pen"></i> Upraviť</button>
+                    <button onclick="deleteProduct('${p.id}')" class="text-xs bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 px-3 py-1.5 rounded-xl transition"><i class="fa-solid fa-trash"></i></button>
                 </td>
             </tr>
         `).join('');
@@ -1244,10 +1365,7 @@
     function addStock(productId) {
         const p = products.find(item => item.id === productId);
         if (p) {
-            p.stock += 10;
-            saveProductsToStorage();
-            renderStock();
-            renderProducts();
+            db.collection('products').doc(productId).update({ stock: p.stock + 10 });
         }
     }
 </script>
