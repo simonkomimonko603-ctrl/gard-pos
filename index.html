@@ -17,15 +17,26 @@
 
     <style>
         .modal { transition: opacity 0.25s ease; }
-        body { background-color: #0b0f19; color: #f1f5f9; }
+        body { background-color: #080c14; color: #f1f5f9; }
         ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: #0f172a; }
-        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        ::-webkit-scrollbar-track { background: #0b0f19; }
+        ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #334155; }
         @keyframes pulseGlow {
             0%, 100% { transform: scale(1); opacity: 1; }
             50% { transform: scale(1.08); opacity: 0.8; }
         }
         .splash-logo { animation: pulseGlow 2s infinite ease-in-out; }
+        
+        .product-card {
+            background: linear-gradient(145deg, rgba(15, 23, 42, 0.8), rgba(10, 15, 28, 0.9));
+            backdrop-filter: blur(8px);
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .product-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 25px -5px rgba(0, 0, 0, 0.5);
+        }
     </style>
 </head>
 <body class="h-screen flex flex-col font-sans overflow-hidden bg-slate-950 text-slate-100 select-none">
@@ -64,7 +75,7 @@
 
     <!-- 2. LOGIN MODAL / PIN PAD -->
     <div id="pin-modal" class="fixed inset-0 z-40 bg-slate-950/95 backdrop-blur-md hidden items-center justify-center p-4">
-        <div class="bg-slate-900 border border-slate-800 rounded-3xl p-8 w-full max-w-sm text-center shadow-2xl">
+        <div class="bg-slate-900/90 border border-slate-800/80 rounded-3xl p-8 w-full max-w-sm text-center shadow-2xl backdrop-blur-xl">
             <div class="w-16 h-16 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 mx-auto flex items-center justify-center font-black text-2xl text-emerald-400 shadow-lg mb-4">G</div>
             <h2 class="text-2xl font-bold mb-1">GARD POS</h2>
             <p class="text-xs text-slate-400 mb-6">Zadajte PIN pre prihlásenie</p>
@@ -77,17 +88,17 @@
             </div>
 
             <div class="grid grid-cols-3 gap-3 mb-6">
-                <button onclick="pressPin('1')" class="h-14 bg-slate-950 hover:bg-slate-800 border border-slate-800 text-xl font-bold rounded-2xl transition active:scale-95">1</button>
-                <button onclick="pressPin('2')" class="h-14 bg-slate-950 hover:bg-slate-800 border border-slate-800 text-xl font-bold rounded-2xl transition active:scale-95">2</button>
-                <button onclick="pressPin('3')" class="h-14 bg-slate-950 hover:bg-slate-800 border border-slate-800 text-xl font-bold rounded-2xl transition active:scale-95">3</button>
-                <button onclick="pressPin('4')" class="h-14 bg-slate-950 hover:bg-slate-800 border border-slate-800 text-xl font-bold rounded-2xl transition active:scale-95">4</button>
-                <button onclick="pressPin('5')" class="h-14 bg-slate-950 hover:bg-slate-800 border border-slate-800 text-xl font-bold rounded-2xl transition active:scale-95">5</button>
-                <button onclick="pressPin('6')" class="h-14 bg-slate-950 hover:bg-slate-800 border border-slate-800 text-xl font-bold rounded-2xl transition active:scale-95">6</button>
-                <button onclick="pressPin('7')" class="h-14 bg-slate-950 hover:bg-slate-800 border border-slate-800 text-xl font-bold rounded-2xl transition active:scale-95">7</button>
-                <button onclick="pressPin('8')" class="h-14 bg-slate-950 hover:bg-slate-800 border border-slate-800 text-xl font-bold rounded-2xl transition active:scale-95">8</button>
-                <button onclick="pressPin('9')" class="h-14 bg-slate-950 hover:bg-slate-800 border border-slate-800 text-xl font-bold rounded-2xl transition active:scale-95">9</button>
+                <button onclick="pressPin('1')" class="h-14 bg-slate-950/80 hover:bg-slate-800 border border-slate-800 text-xl font-bold rounded-2xl transition active:scale-95">1</button>
+                <button onclick="pressPin('2')" class="h-14 bg-slate-950/80 hover:bg-slate-800 border border-slate-800 text-xl font-bold rounded-2xl transition active:scale-95">2</button>
+                <button onclick="pressPin('3')" class="h-14 bg-slate-950/80 hover:bg-slate-800 border border-slate-800 text-xl font-bold rounded-2xl transition active:scale-95">3</button>
+                <button onclick="pressPin('4')" class="h-14 bg-slate-950/80 hover:bg-slate-800 border border-slate-800 text-xl font-bold rounded-2xl transition active:scale-95">4</button>
+                <button onclick="pressPin('5')" class="h-14 bg-slate-950/80 hover:bg-slate-800 border border-slate-800 text-xl font-bold rounded-2xl transition active:scale-95">5</button>
+                <button onclick="pressPin('6')" class="h-14 bg-slate-950/80 hover:bg-slate-800 border border-slate-800 text-xl font-bold rounded-2xl transition active:scale-95">6</button>
+                <button onclick="pressPin('7')" class="h-14 bg-slate-950/80 hover:bg-slate-800 border border-slate-800 text-xl font-bold rounded-2xl transition active:scale-95">7</button>
+                <button onclick="pressPin('8')" class="h-14 bg-slate-950/80 hover:bg-slate-800 border border-slate-800 text-xl font-bold rounded-2xl transition active:scale-95">8</button>
+                <button onclick="pressPin('9')" class="h-14 bg-slate-950/80 hover:bg-slate-800 border border-slate-800 text-xl font-bold rounded-2xl transition active:scale-95">9</button>
                 <button onclick="clearPin()" class="h-14 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 font-bold rounded-2xl transition active:scale-95"><i class="fa-solid fa-eraser"></i></button>
-                <button onclick="pressPin('0')" class="h-14 bg-slate-950 hover:bg-slate-800 border border-slate-800 text-xl font-bold rounded-2xl transition active:scale-95">0</button>
+                <button onclick="pressPin('0')" class="h-14 bg-slate-950/80 hover:bg-slate-800 border border-slate-800 text-xl font-bold rounded-2xl transition active:scale-95">0</button>
                 <button onclick="enterPin()" class="h-14 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-2xl transition active:scale-95"><i class="fa-solid fa-arrow-right"></i></button>
             </div>
             <p id="pin-error" class="text-xs text-rose-400 font-bold hidden"><i class="fa-solid fa-circle-exclamation"></i> Neplatný PIN kód!</p>
@@ -97,21 +108,21 @@
     <!-- MAIN INTERFACE -->
     <div id="main-interface" class="h-full flex flex-col hidden">
         <!-- Top Navigation -->
-        <header class="bg-slate-900/90 border-b border-slate-800 text-white flex justify-between items-center px-6 py-3 shadow-2xl backdrop-blur-md shrink-0">
+        <header class="bg-slate-900/90 border-b border-slate-800/80 text-white flex justify-between items-center px-6 py-3 shadow-2xl backdrop-blur-md shrink-0">
             <div class="flex items-center space-x-3">
-                <div class="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center font-black text-emerald-400 text-xl shadow-inner">G</div>
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500/20 to-teal-500/10 border border-emerald-500/30 flex items-center justify-center font-black text-emerald-400 text-xl shadow-inner">G</div>
                 <div>
                     <h1 class="text-xl font-black tracking-wider text-slate-100">GARD <span class="text-emerald-400">POS</span></h1>
-                    <p class="text-xs text-slate-400">Obsluha: <span id="current-user-display" class="text-emerald-400 font-bold">---</span> <span class="text-xs bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full ml-2 font-mono">LIVE CLOUD</span></p>
+                    <p class="text-xs text-slate-400">Obsluha: <span id="current-user-display" class="text-emerald-400 font-bold">---</span> <span class="text-[10px] bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full ml-2 font-mono font-bold"><i class="fa-solid fa-signal text-[8px] mr-1"></i>LIVE CLOUD</span></p>
                 </div>
             </div>
             <nav class="flex space-x-2">
-                <button onclick="switchTab('pos')" id="tab-pos" class="px-4 py-2 rounded-xl font-semibold bg-emerald-600 hover:bg-emerald-500 transition text-sm flex items-center gap-2 shadow-lg shadow-emerald-600/20"><i class="fa-solid fa-calculator"></i>Pokladňa</button>
-                <button onclick="switchTab('transactions')" id="tab-transactions" class="px-4 py-2 rounded-xl font-semibold hover:bg-slate-800 text-slate-300 transition text-sm flex items-center gap-2"><i class="fa-solid fa-receipt"></i>Transakcie (KDS)</button>
-                <button onclick="switchTab('analytics')" id="tab-analytics" class="px-4 py-2 rounded-xl font-semibold hover:bg-slate-800 text-slate-300 transition text-sm flex items-center gap-2"><i class="fa-solid fa-chart-pie"></i>Analytika & Grafy</button>
-                <button onclick="switchTab('rooms')" id="tab-rooms" class="px-4 py-2 rounded-xl font-semibold hover:bg-slate-800 text-slate-300 transition text-sm flex items-center gap-2"><i class="fa-solid fa-hotel"></i>Izby / Stoly</button>
-                <button onclick="switchTab('cards')" id="tab-cards" class="px-4 py-2 rounded-xl font-semibold hover:bg-slate-800 text-slate-300 transition text-sm flex items-center gap-2"><i class="fa-solid fa-id-card"></i>Vernostné karty</button>
-                <button onclick="switchTab('stock')" id="tab-stock" class="px-4 py-2 rounded-xl font-semibold hover:bg-slate-800 text-slate-300 transition text-sm flex items-center gap-2"><i class="fa-solid fa-boxes-stacked"></i>Sklad & Produkty</button>
+                <button onclick="switchTab('pos')" id="tab-pos" class="px-4 py-2 rounded-xl font-bold bg-emerald-600 hover:bg-emerald-500 transition text-xs flex items-center gap-2 shadow-lg shadow-emerald-600/20"><i class="fa-solid fa-calculator"></i>Pokladňa</button>
+                <button onclick="switchTab('transactions')" id="tab-transactions" class="px-4 py-2 rounded-xl font-semibold hover:bg-slate-800 text-slate-300 transition text-xs flex items-center gap-2"><i class="fa-solid fa-receipt"></i>Transakcie (KDS)</button>
+                <button onclick="switchTab('analytics')" id="tab-analytics" class="px-4 py-2 rounded-xl font-semibold hover:bg-slate-800 text-slate-300 transition text-xs flex items-center gap-2"><i class="fa-solid fa-chart-pie"></i>Analytika & Grafy</button>
+                <button onclick="switchTab('rooms')" id="tab-rooms" class="px-4 py-2 rounded-xl font-semibold hover:bg-slate-800 text-slate-300 transition text-xs flex items-center gap-2"><i class="fa-solid fa-hotel"></i>Izby / Stoly</button>
+                <button onclick="switchTab('cards')" id="tab-cards" class="px-4 py-2 rounded-xl font-semibold hover:bg-slate-800 text-slate-300 transition text-xs flex items-center gap-2"><i class="fa-solid fa-id-card"></i>Vernostné karty</button>
+                <button onclick="switchTab('stock')" id="tab-stock" class="px-4 py-2 rounded-xl font-semibold hover:bg-slate-800 text-slate-300 transition text-xs flex items-center gap-2"><i class="fa-solid fa-boxes-stacked"></i>Sklad & Produkty</button>
             </nav>
             <button onclick="logout()" class="bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2">
                 <i class="fa-solid fa-right-from-bracket"></i> Odhlásiť
@@ -124,61 +135,70 @@
             <!-- TAB: POKLADŇA -->
             <div id="view-pos" class="h-full flex gap-4">
                 <!-- Left: Products Area -->
-                <div class="flex-1 bg-slate-900/60 border border-slate-800 rounded-2xl p-4 flex flex-col h-full shadow-2xl backdrop-blur-md">
+                <div class="flex-1 bg-slate-900/40 border border-slate-800/80 rounded-2xl p-4 flex flex-col h-full shadow-2xl backdrop-blur-md">
                     <div class="flex justify-between items-center mb-4">
-                        <h2 class="text-lg font-bold text-slate-100 flex items-center gap-2"><i class="fa-solid fa-utensils text-emerald-400"></i> Ponuka Produktov</h2>
-                        <div class="flex items-center gap-3">
-                            <div id="category-filters" class="flex gap-2"></div>
-                            <button onclick="openCustomItemModal()" class="bg-amber-500/10 border border-amber-500/30 hover:bg-amber-500 text-amber-400 hover:text-slate-950 px-3.5 py-1.5 rounded-xl font-black text-xs transition flex items-center gap-1.5">
-                                <i class="fa-solid fa-bolt"></i> + Vlastná položka
-                            </button>
+                        <div class="flex items-center gap-2">
+                            <span class="w-8 h-8 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 text-sm"><i class="fa-solid fa-border-all"></i></span>
+                            <h2 class="text-base font-bold text-slate-100">Ponuka Produktov</h2>
                         </div>
+                        <button onclick="openCustomItemModal()" class="bg-amber-500/10 border border-amber-500/30 hover:bg-amber-500 text-amber-400 hover:text-slate-950 px-3.5 py-2 rounded-xl font-black text-xs transition flex items-center gap-2 shadow-lg shadow-amber-500/10">
+                            <i class="fa-solid fa-bolt text-amber-400 hover:text-slate-950"></i> + Vlastná položka
+                        </button>
                     </div>
-                    <div id="products-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 overflow-y-auto flex-1 pr-1"></div>
+
+                    <!-- Category Bar -->
+                    <div id="category-filters" class="flex gap-2 mb-4 overflow-x-auto pb-1 shrink-0"></div>
+
+                    <!-- Products Grid -->
+                    <div id="products-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3.5 overflow-y-auto flex-1 pr-1"></div>
                 </div>
 
                 <!-- Right: Order Summary -->
-                <div class="w-[400px] bg-slate-900/80 border border-slate-800 rounded-2xl p-4 flex flex-col h-full shadow-2xl backdrop-blur-md">
-                    <div class="flex justify-between items-center border-b border-slate-800 pb-3 mb-3">
+                <div class="w-[410px] bg-slate-900/70 border border-slate-800/80 rounded-2xl p-4 flex flex-col h-full shadow-2xl backdrop-blur-md shrink-0">
+                    <div class="flex justify-between items-center border-b border-slate-800/80 pb-3 mb-3">
                         <div>
-                            <h2 class="text-lg font-bold text-slate-100">Aktuálny účet</h2>
+                            <h2 class="text-base font-bold text-slate-100 flex items-center gap-2">
+                                <i class="fa-solid fa-receipt text-emerald-400"></i> Aktuálny účet
+                            </h2>
                             <span id="active-room-display" class="text-xs text-emerald-400 font-bold">Stôl / Izba: Hlavná</span>
                         </div>
-                        <button onclick="clearCart()" class="text-xs text-rose-400 hover:text-rose-300 px-2 py-1 rounded-lg border border-rose-500/20 hover:bg-rose-500/10">Vynulovať</button>
+                        <button onclick="clearCart()" class="text-xs text-rose-400 hover:text-rose-300 px-2.5 py-1 rounded-xl border border-rose-500/20 hover:bg-rose-500/10 transition font-semibold">
+                            <i class="fa-solid fa-trash-can mr-1"></i> Vymazať
+                        </button>
                     </div>
 
                     <div class="mb-3">
                         <label class="block text-xs font-semibold text-slate-400 mb-1">Vernostný zákazník:</label>
-                        <select id="cart-customer-select" onchange="applyCustomerLoyalty()" class="w-full text-sm border border-slate-700 rounded-xl p-2.5 bg-slate-950 text-slate-200 focus:outline-none focus:border-emerald-500">
+                        <select id="cart-customer-select" onchange="applyCustomerLoyalty()" class="w-full text-xs border border-slate-800 rounded-xl p-2.5 bg-slate-950 text-slate-200 focus:outline-none focus:border-emerald-500/50">
                             <option value="">-- Bez karty --</option>
                         </select>
                     </div>
 
                     <div id="order-items" class="flex-1 overflow-y-auto space-y-2 pr-1 mb-3">
-                        <div class="text-center text-slate-500 mt-10">Účet je zatiaľ prázdny</div>
+                        <div class="text-center text-slate-500 mt-10 text-xs">Účet je zatiaľ prázdny</div>
                     </div>
 
-                    <div class="border-t border-slate-800 pt-3 space-y-1.5 mb-4">
-                        <div class="flex justify-between text-sm text-slate-400">
+                    <div class="border-t border-slate-800/80 pt-3 space-y-1.5 mb-4">
+                        <div class="flex justify-between text-xs text-slate-400">
                             <span>Medzisúčet:</span>
-                            <span id="subtotal-val" class="text-slate-200">0.00 €</span>
+                            <span id="subtotal-val" class="text-slate-200 font-semibold">0.00 €</span>
                         </div>
-                        <div class="flex justify-between text-sm text-slate-400">
+                        <div class="flex justify-between text-xs text-slate-400">
                             <span>Zľava:</span>
                             <span id="discount-val" class="text-emerald-400 font-bold">0.00 €</span>
                         </div>
-                        <div class="flex justify-between text-xl font-black text-slate-100 border-t border-slate-800 pt-2">
+                        <div class="flex justify-between text-xl font-black text-slate-100 border-t border-slate-800/80 pt-2.5">
                             <span>Spolu:</span>
                             <span id="total-val" class="text-emerald-400">0.00 €</span>
                         </div>
                     </div>
 
                     <div class="space-y-2">
-                        <button onclick="sendToKitchen()" class="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold py-3 rounded-xl transition flex items-center justify-center gap-2 shadow-lg shadow-amber-600/20 text-sm">
-                            <i class="fa-solid fa-paper-plane"></i> Odoslať na KDS & Uložiť na účet
+                        <button onclick="sendToKitchen()" class="w-full bg-amber-600/90 hover:bg-amber-500 text-white font-bold py-3 rounded-xl transition flex items-center justify-center gap-2 shadow-lg shadow-amber-600/15 text-xs tracking-wide">
+                            <i class="fa-solid fa-paper-plane"></i> ODOSLAŤ NA KDS & ULOŽIŤ
                         </button>
-                        <button onclick="openPaymentModal()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3.5 rounded-xl text-lg shadow-lg shadow-emerald-600/20 transition flex items-center justify-center gap-2">
-                            <i class="fa-solid fa-credit-card"></i> PLATBA
+                        <button onclick="openPaymentModal()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-black py-3.5 rounded-xl text-base shadow-lg shadow-emerald-600/20 transition flex items-center justify-center gap-2 tracking-wider">
+                            <i class="fa-solid fa-credit-card"></i> ZAPLATIŤ ÚČET
                         </button>
                     </div>
                 </div>
@@ -537,85 +557,19 @@
     let barChart = null;
     let pieChart = null;
 
-    // DATA PRE IMPORT Z APEX POS
-    const apexCatalogProducts = [
-        { name: "Espresso", category: "Káva", price: 1.60, stock: 100, unit: "ks" },
-        { name: "Cappuccino", category: "Káva", price: 2.49, stock: 100, unit: "ks" },
-        { name: "Americano", category: "Káva", price: 2.19, stock: 100, unit: "ks" },
-        { name: "Ľadová káva", category: "Káva", price: 2.49, stock: 100, unit: "ks" },
-        
-        { name: "Márka", category: "Nealko napoje", price: 1.49, stock: 100, unit: "ks" },
-        { name: "San Pellegrino Naturali", category: "Nealko napoje", price: 2.00, stock: 100, unit: "ks" },
-        { name: "Pepsi normal", category: "Nealko napoje", price: 1.59, stock: 100, unit: "ks" },
-        { name: "Limonáda Pomaranč", category: "Nealko napoje", price: 2.99, stock: 100, unit: "ks" },
-        { name: "Limonáda Citron", category: "Nealko napoje", price: 2.29, stock: 100, unit: "ks" },
-        { name: "Limonáda jahoda", category: "Nealko napoje", price: 2.49, stock: 100, unit: "ks" },
-        { name: "Horúca Čokoláda", category: "Nealko napoje", price: 2.99, stock: 100, unit: "ks" },
-        { name: "Pepsi Zero", category: "Nealko napoje", price: 1.59, stock: 100, unit: "ks" },
-        { name: "Pepsi sklo", category: "Nealko napoje", price: 2.00, stock: 100, unit: "ks" },
-        { name: "Cedevita", category: "Nealko napoje", price: 1.79, stock: 100, unit: "ks" },
-        { name: "Relax limonáda malina", category: "Nealko napoje", price: 1.59, stock: 100, unit: "ks" },
-        { name: "1 eur produkt Ine", category: "Nealko napoje", price: 1.00, stock: 100, unit: "ks" },
+    // MAGICKÉ FARBY A IKONY KATEGÓRIÍ
+    const categoryStyles = {
+        "Káva": { color: "#f97316", bg: "bg-orange-500/10", border: "border-orange-500/30", text: "text-orange-400", bar: "bg-orange-500", icon: "fa-mug-hot" },
+        "Nealko napoje": { color: "#3b82f6", bg: "bg-blue-500/10", border: "border-blue-500/30", text: "text-blue-400", bar: "bg-blue-500", icon: "fa-bottle-water" },
+        "Voda": { color: "#06b6d4", bg: "bg-cyan-500/10", border: "border-cyan-500/30", text: "text-cyan-400", bar: "bg-cyan-500", icon: "fa-glass-water" },
+        "Alkohol": { color: "#f59e0b", bg: "bg-amber-500/10", border: "border-amber-500/30", text: "text-amber-400", bar: "bg-amber-500", icon: "fa-beer-mug-empty" },
+        "Víno": { color: "#a855f7", bg: "bg-purple-500/10", border: "border-purple-500/30", text: "text-purple-400", bar: "bg-purple-500", icon: "fa-wine-glass-empty" },
+        "Cocktaily": { color: "#ec4899", bg: "bg-pink-500/10", border: "border-pink-500/30", text: "text-pink-400", bar: "bg-pink-500", icon: "fa-martini-glass-citrus" },
+        "Rôzne": { color: "#64748b", bg: "bg-slate-500/10", border: "border-slate-500/30", text: "text-slate-400", bar: "bg-slate-500", icon: "fa-tag" }
+    };
 
-        { name: "Rajec siteny sklo", category: "Voda", price: 1.79, stock: 100, unit: "ks" },
-        { name: "San Pellegrino velka", category: "Voda", price: 2.99, stock: 100, unit: "ks" },
-        { name: "San Pellegrino", category: "Voda", price: 1.59, stock: 100, unit: "ks" },
-        { name: "Voda mala kaufland nesitemna", category: "Voda", price: 1.29, stock: 100, unit: "ks" },
-        { name: "Rajec", category: "Voda", price: 1.49, stock: 100, unit: "ks" },
-        { name: "Natura", category: "Voda", price: 1.59, stock: 100, unit: "ks" },
-
-        { name: "Pivo podľa ponuky", category: "Alkohol", price: 1.99, stock: 100, unit: "ks" },
-
-        { name: "Víno rozlievané podľa ponuky I", category: "Víno", price: 1.59, stock: 100, unit: "ks" },
-        { name: "Víno Rozlievané III", category: "Víno", price: 4.50, stock: 100, unit: "ks" },
-        { name: "Pinot Noir 21/22 Tajna", category: "Víno", price: 18.00, stock: 100, unit: "ks" },
-        { name: "Valdobbiadee Prosecco Superiore La Gioiosa", category: "Víno", price: 28.00, stock: 100, unit: "ks" },
-        { name: "Gran Cuvée Spumante Hamšík", category: "Víno", price: 24.00, stock: 100, unit: "ks" },
-        { name: "Muller Thurgau 21 Tajna", category: "Víno", price: 18.00, stock: 100, unit: "ks" },
-        { name: "Pálava 24 Topoľčianky", category: "Víno", price: 19.00, stock: 100, unit: "ks" },
-        { name: "Sauvignon Blanc Premium 2023 f", category: "Víno", price: 29.90, stock: 100, unit: "ks" },
-        { name: "Prosecco Pohar", category: "Víno", price: 2.20, stock: 100, unit: "ks" },
-        { name: "Víno rozlievané II", category: "Víno", price: 3.00, stock: 100, unit: "ks" },
-        { name: "Irsai Oliver - Chateau Topoľčianky", category: "Víno", price: 16.00, stock: 100, unit: "ks" },
-
-        { name: "Gin Fizz", category: "Cocktaily", price: 5.20, stock: 100, unit: "ks" },
-        { name: "Širley Temple", category: "Cocktaily", price: 3.49, stock: 100, unit: "ks" },
-        { name: "Nojito", category: "Cocktaily", price: 3.80, stock: 100, unit: "ks" },
-        { name: "Limoncello Spritz", category: "Cocktaily", price: 5.80, stock: 100, unit: "ks" },
-        { name: "Mojito", category: "Cocktaily", price: 5.50, stock: 100, unit: "ks" },
-        { name: "Lístok klasicky", category: "Cocktaily", price: 4.99, stock: 100, unit: "ks" },
-        { name: "Shirley Tample", category: "Cocktaily", price: 2.49, stock: 100, unit: "ks" },
-        { name: "The Golden Bee", category: "Cocktaily", price: 6.20, stock: 100, unit: "ks" },
-        { name: "Gin & Tonic", category: "Cocktaily", price: 5.50, stock: 100, unit: "ks" },
-        { name: "Cuba Libre", category: "Cocktaily", price: 4.80, stock: 100, unit: "ks" },
-        { name: "Aperol Sunset", category: "Cocktaily", price: 6.00, stock: 100, unit: "ks" },
-        { name: "Pink Lady Special", category: "Cocktaily", price: 6.50, stock: 100, unit: "ks" },
-        { name: "Tom Collins", category: "Cocktaily", price: 5.20, stock: 100, unit: "ks" },
-        { name: "Daiquiri", category: "Cocktaily", price: 4.90, stock: 100, unit: "ks" },
-        { name: "French 75", category: "Cocktaily", price: 6.80, stock: 100, unit: "ks" },
-        { name: "Šejk-o-Limonáda", category: "Cocktaily", price: 3.50, stock: 100, unit: "ks" },
-        { name: "Gin Rickey", category: "Cocktaily", price: 5.00, stock: 100, unit: "ks" },
-        { name: "Cucumber Cooler", category: "Cocktaily", price: 4.00, stock: 100, unit: "ks" },
-
-        { name: "Listok VIP", category: "Rôzne", price: 9.99, stock: 100, unit: "ks" }
-    ];
-
-    function importApexCatalog() {
-        if(confirm("Chcete automaticky importovať všetkých 44 produktov zo snímky do databázy?")) {
-            db.collection('settings').doc('categories').set({ list: categoriesList });
-
-            let batch = db.batch();
-            apexCatalogProducts.forEach(p => {
-                let docRef = db.collection('products').doc();
-                batch.set(docRef, p);
-            });
-
-            batch.commit().then(() => {
-                alert("🎉 Všetkých 44 produktov bolo úspešne pridaných do vašej cloudovej databázy!");
-            }).catch(err => {
-                alert("Chyba pri me hromadnom náhraní: " + err.message);
-            });
-        }
+    function getCatStyle(cat) {
+        return categoryStyles[cat] || { color: "#10b981", bg: "bg-emerald-500/10", border: "border-emerald-500/30", text: "text-emerald-400", bar: "bg-emerald-500", icon: "fa-utensils" };
     }
 
     // --- INITIALIZATION ---
@@ -779,11 +733,25 @@
     function renderCategories() {
         const categories = ['All', ...categoriesList];
         const container = document.getElementById('category-filters');
-        container.innerHTML = categories.map(c => `
-            <button onclick="filterCategory('${c}')" class="px-3.5 py-1.5 text-xs rounded-xl border ${selectedCategory === c ? 'bg-emerald-600 text-white border-emerald-500' : 'bg-slate-950 border-slate-800 text-slate-400 hover:bg-slate-800'} font-bold transition">
-                ${c === 'All' ? 'Všetko' : c}
-            </button>
-        `).join('');
+        
+        container.innerHTML = categories.map(c => {
+            const isSelected = selectedCategory === c;
+            const style = getCatStyle(c);
+            
+            if (c === 'All') {
+                return `
+                    <button onclick="filterCategory('All')" class="px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 border ${isSelected ? 'bg-emerald-600 border-emerald-500 text-white shadow-lg shadow-emerald-600/20' : 'bg-slate-900 border-slate-800 text-slate-400 hover:bg-slate-800'}">
+                        <i class="fa-solid fa-list-ul"></i> Všetko
+                    </button>
+                `;
+            }
+
+            return `
+                <button onclick="filterCategory('${c}')" class="px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 border ${isSelected ? `${style.bg} ${style.border}${style.text} ring-2 ring-emerald-500/40` : 'bg-slate-900/80 border-slate-800/80 text-slate-400 hover:bg-slate-800'}">
+                    <i class="fa-solid ${style.icon}"></i> ${c}
+                </button>
+            `;
+        }).join('');
 
         const select = document.getElementById('prod-cat-select');
         select.innerHTML = categoriesList.map(c => `<option value="${c}">${c}</option>`).join('');
@@ -835,23 +803,50 @@
         }
     }
 
-    // --- PRODUCTS DISPLAY ---
+    // --- PRODUCTS DISPLAY (S FAREBNÝMI PÁSIKMI) ---
     function renderProducts() {
         const grid = document.getElementById('products-grid');
         const filtered = selectedCategory === 'All' ? products : products.filter(p => p.category === selectedCategory);
 
-        grid.innerHTML = filtered.map(p => `
-            <div onclick="addToCart('${p.id}')" class="bg-slate-950/80 border border-slate-800 hover:border-emerald-500/50 rounded-2xl p-4 cursor-pointer transition flex flex-col justify-between shadow-xl group">
-                <div>
-                    <div class="font-bold text-slate-100 text-base mb-1 group-hover:text-emerald-400 transition">${p.name}</div>
-                    <div class="text-xs text-slate-400">Sklad: <span class="${p.stock <= 10 ? 'text-rose-400 font-bold' : 'text-slate-300'}">${p.stock} ${p.unit}</span></div>
+        if (filtered.length === 0) {
+            grid.innerHTML = `<div class="col-span-full text-center py-12 text-slate-500 font-semibold text-sm">Žiadne produkty v tejto kategórii</div>`;
+            return;
+        }
+
+        grid.innerHTML = filtered.map(p => {
+            const style = getCatStyle(p.category);
+            return `
+                <div onclick="addToCart('${p.id}')" class="product-card border border-slate-800/80 rounded-2xl p-3.5 cursor-pointer flex flex-col justify-between shadow-xl relative overflow-hidden group">
+                    <div>
+                        <!-- Category Badge -->
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-[10px] uppercase font-extrabold px-2 py-0.5 rounded-md ${style.bg} ${style.text} ${style.border} border tracking-wider">
+                                ${p.category}
+                            </span>
+                            <span class="text-[10px] font-mono ${p.stock <= 10 ? 'text-rose-400 font-bold' : 'text-slate-500'}">
+                                ${p.stock} ${p.unit}
+                            </span>
+                        </div>
+
+                        <!-- Product Name -->
+                        <div class="font-bold text-slate-100 text-sm mb-1 line-clamp-2 leading-snug group-hover:text-emerald-400 transition">
+                            ${p.name}
+                        </div>
+                    </div>
+
+                    <!-- Bottom Price Row -->
+                    <div class="mt-3 flex justify-between items-center pt-2 border-t border-slate-800/50">
+                        <span class="text-emerald-400 font-black text-base">${parseFloat(p.price).toFixed(2)} €</span>
+                        <span class="w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center justify-center text-xs group-hover:bg-emerald-600 group-hover:text-white transition">
+                            <i class="fa-solid fa-plus"></i>
+                        </span>
+                    </div>
+
+                    <!-- Elegantný farebný pásik dole -->
+                    <div class="absolute bottom-0 left-0 right-0 h-1.5 ${style.bar} opacity-90 group-hover:opacity-100 transition"></div>
                 </div>
-                <div class="mt-4 flex justify-between items-center">
-                    <span class="text-emerald-400 font-black text-lg">${parseFloat(p.price).toFixed(2)} €</span>
-                    <span class="text-xs bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 p-2 rounded-xl group-hover:bg-emerald-600 group-hover:text-white transition"><i class="fa-solid fa-plus"></i></span>
-                </div>
-            </div>
-        `).join('');
+            `;
+        }).join('');
     }
 
     // --- CUSTOM ITEM MODAL LOGIC ---
@@ -882,7 +877,8 @@
             name: name,
             price: price,
             unit: 'ks',
-            stock: 999
+            stock: 999,
+            category: 'Rôzne'
         };
 
         if(!room.cart) room.cart = [];
@@ -957,7 +953,7 @@
         const container = document.getElementById('order-items');
         
         if (!room.cart || room.cart.length === 0) {
-            container.innerHTML = `<div class="text-center text-slate-500 mt-10">Účet je zatiaľ prázdny</div>`;
+            container.innerHTML = `<div class="text-center text-slate-500 mt-10 text-xs font-medium">Účet je zatiaľ prázdny</div>`;
             document.getElementById('subtotal-val').innerText = '0.00 €';
             document.getElementById('discount-val').innerText = '0.00 €';
             document.getElementById('total-val').innerText = '0.00 €';
@@ -968,16 +964,19 @@
         container.innerHTML = room.cart.map(item => {
             const itemTotal = item.product.price * item.qty;
             subtotal += itemTotal;
+            const style = getCatStyle(item.product.category);
+
             return `
-                <div class="flex justify-between items-center bg-slate-950/60 border border-slate-800 p-3 rounded-xl text-sm">
-                    <div class="flex-1">
-                        <div class="font-bold text-slate-200">${item.product.name}</div>
-                        <div class="text-xs text-slate-400">${parseFloat(item.product.price).toFixed(2)} € / ${item.product.unit}</div>
+                <div class="flex justify-between items-center bg-slate-950/80 border border-slate-800/80 p-2.5 rounded-xl text-xs relative overflow-hidden">
+                    <div class="w-1 absolute left-0 top-0 bottom-0 ${style.bar}"></div>
+                    <div class="flex-1 pl-2">
+                        <div class="font-bold text-slate-100">${item.product.name}</div>
+                        <div class="text-[10px] text-slate-400">${parseFloat(item.product.price).toFixed(2)} € / ${item.product.unit}</div>
                     </div>
-                    <div class="flex items-center gap-2">
-                        <button onclick="updateCartQty('${item.product.id}', -1)" class="w-7 h-7 bg-slate-800 hover:bg-slate-700 rounded-lg font-bold text-xs text-slate-200">-</button>
-                        <span class="font-bold text-slate-100 w-6 text-center">${item.qty}</span>
-                        <button onclick="updateCartQty('${item.product.id}', 1)" class="w-7 h-7 bg-slate-800 hover:bg-slate-700 rounded-lg font-bold text-xs text-slate-200">+</button>
+                    <div class="flex items-center gap-1.5 px-2">
+                        <button onclick="updateCartQty('${item.product.id}', -1)" class="w-6 h-6 bg-slate-800 hover:bg-slate-700 rounded-md font-bold text-slate-200 transition text-xs">-</button>
+                        <span class="font-black text-slate-100 w-5 text-center text-xs">${item.qty}</span>
+                        <button onclick="updateCartQty('${item.product.id}', 1)" class="w-6 h-6 bg-slate-800 hover:bg-slate-700 rounded-md font-bold text-slate-200 transition text-xs">+</button>
                     </div>
                     <div class="w-16 text-right font-black text-emerald-400">${itemTotal.toFixed(2)} €</div>
                 </div>
@@ -1249,7 +1248,7 @@
     function saveProduct() {
         const id = document.getElementById('product-edit-id').value;
         const name = document.getElementById('prod-name-input').value.trim();
-        const category = document.getElementById('prod-cat-select').value || 'Všeobecné';
+        const category = document.getElementById('prod-cat-select').value || 'Rôzne';
         const price = parseFloat(document.getElementById('prod-price-input').value) || 0;
         const stock = parseInt(document.getElementById('prod-stock-input').value) || 0;
         const unit = document.getElementById('prod-unit-input').value;
@@ -1431,19 +1430,22 @@
     // --- STOCK MANAGEMENT ---
     function renderStock() {
         const tbody = document.getElementById('stock-table-body');
-        tbody.innerHTML = products.map(p => `
-            <tr class="hover:bg-slate-950/40">
-                <td class="p-4 font-bold text-slate-100">${p.name}</td>
-                <td class="p-4 text-slate-400">${p.category}</td>
-                <td class="p-4 font-bold text-emerald-400">${parseFloat(p.price).toFixed(2)} €</td>
-                <td class="p-4 font-bold ${p.stock <= 10 ? 'text-rose-400' : 'text-slate-200'}">${p.stock} ${p.unit}</td>
-                <td class="p-4 text-right space-x-2">
-                    <button onclick="addStock('${p.id}')" class="text-xs bg-emerald-500/10 border border-emerald-500/20 hover:bg-emerald-600 text-emerald-400 hover:text-white px-3 py-1.5 rounded-xl font-bold transition"><i class="fa-solid fa-plus mr-1"></i> +10</button>
-                    <button onclick="openProductModal('${p.id}')" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-1.5 rounded-xl font-bold transition"><i class="fa-solid fa-pen"></i> Upraviť</button>
-                    <button onclick="deleteProduct('${p.id}')" class="text-xs bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 px-3 py-1.5 rounded-xl transition"><i class="fa-solid fa-trash"></i></button>
-                </td>
-            </tr>
-        `).join('');
+        tbody.innerHTML = products.map(p => {
+            const style = getCatStyle(p.category);
+            return `
+                <tr class="hover:bg-slate-950/40">
+                    <td class="p-4 font-bold text-slate-100">${p.name}</td>
+                    <td class="p-4"><span class="text-xs font-bold px-2.5 py-1 rounded-lg ${style.bg} ${style.text} ${style.border} border">${p.category}</span></td>
+                    <td class="p-4 font-bold text-emerald-400">${parseFloat(p.price).toFixed(2)} €</td>
+                    <td class="p-4 font-bold ${p.stock <= 10 ? 'text-rose-400' : 'text-slate-200'}">${p.stock} ${p.unit}</td>
+                    <td class="p-4 text-right space-x-2">
+                        <button onclick="addStock('${p.id}')" class="text-xs bg-emerald-500/10 border border-emerald-500/20 hover:bg-emerald-600 text-emerald-400 hover:text-white px-3 py-1.5 rounded-xl font-bold transition"><i class="fa-solid fa-plus mr-1"></i> +10</button>
+                        <button onclick="openProductModal('${p.id}')" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-1.5 rounded-xl font-bold transition"><i class="fa-solid fa-pen"></i> Upraviť</button>
+                        <button onclick="deleteProduct('${p.id}')" class="text-xs bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 px-3 py-1.5 rounded-xl transition"><i class="fa-solid fa-trash"></i></button>
+                    </td>
+                </tr>
+            `;
+        }).join('');
     }
 
     function addStock(productId) {
