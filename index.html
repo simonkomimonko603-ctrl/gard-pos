@@ -40,7 +40,7 @@
 
         /* TABLETOVÝ MÓD (NATIVELY ACTIVE) */
         body.tablet-mode .products-grid-layout {
-            grid-template-cols: repeat(auto-fill, minmax(180px, 1fr)) !important;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)) !important;
             gap: 1.25rem !important;
         }
         body.tablet-mode .product-card {
@@ -145,6 +145,7 @@
             <nav class="flex space-x-1.5 overflow-x-auto py-1">
                 <button onclick="switchTab('pos')" id="tab-pos" class="px-3.5 py-2 rounded-xl font-bold bg-emerald-600 hover:bg-emerald-500 transition text-xs flex items-center gap-1.5 shadow-lg shadow-emerald-600/20 whitespace-nowrap"><i class="fa-solid fa-calculator"></i>Pokladňa</button>
                 <button onclick="switchTab('transactions')" id="tab-transactions" class="px-3.5 py-2 rounded-xl font-semibold hover:bg-slate-800 text-slate-300 transition text-xs flex items-center gap-1.5 whitespace-nowrap"><i class="fa-solid fa-receipt"></i>KDS</button>
+                <button onclick="switchTab('inventory')" id="tab-inventory" class="px-3.5 py-2 rounded-xl font-semibold hover:bg-slate-800 text-slate-300 transition text-xs flex items-center gap-1.5 whitespace-nowrap"><i class="fa-solid fa-warehouse"></i>Inventár</button>
                 <button onclick="switchTab('analytics')" id="tab-analytics" class="px-3.5 py-2 rounded-xl font-semibold hover:bg-slate-800 text-slate-300 transition text-xs flex items-center gap-1.5 whitespace-nowrap"><i class="fa-solid fa-chart-pie"></i>Grafy</button>
                 <button onclick="switchTab('rooms')" id="tab-rooms" class="px-3.5 py-2 rounded-xl font-semibold hover:bg-slate-800 text-slate-300 transition text-xs flex items-center gap-1.5 whitespace-nowrap"><i class="fa-solid fa-hotel"></i>Stoly</button>
                 <button onclick="switchTab('cards')" id="tab-cards" class="px-3.5 py-2 rounded-xl font-semibold hover:bg-slate-800 text-slate-300 transition text-xs flex items-center gap-1.5 whitespace-nowrap"><i class="fa-solid fa-id-card"></i>Karty</button>
@@ -227,13 +228,25 @@
 
                     <div class="space-y-2">
                         <button onclick="sendToKitchen()" class="w-full bg-amber-600/90 hover:bg-amber-500 text-white font-bold py-3 rounded-xl transition flex items-center justify-center gap-2 shadow-lg shadow-amber-600/15 text-xs tracking-wide">
-                            <i class="fa-solid fa-paper-plane"></i> ODOSLAŤ NA KDS
+                            <i class="fa-solid fa-paper-plane"></i> ODOSLAŤ NOVÉ NA KDS
                         </button>
                         <button onclick="openPaymentModal()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-black py-3.5 rounded-xl text-base shadow-lg shadow-emerald-600/20 transition flex items-center justify-center gap-2 tracking-wider">
                             <i class="fa-solid fa-credit-card"></i> ZAPLATIŤ ÚČET
                         </button>
                     </div>
                 </div>
+            </div>
+
+            <!-- TAB: INVENTÁR -->
+            <div id="view-inventory" class="h-full hidden flex-col bg-slate-900/60 border border-slate-800 rounded-2xl shadow-2xl p-6 overflow-y-auto">
+                <div class="flex justify-between items-center mb-6">
+                    <div>
+                        <h2 class="text-xl font-bold text-slate-100 flex items-center gap-2"><i class="fa-solid fa-warehouse text-emerald-400"></i> Správa Inventára a Zásob</h2>
+                        <p class="text-sm text-slate-400">Rýchla úprava skladových zásobení produktov v reálnom čase.</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="inventory-grid"></div>
             </div>
 
             <!-- TAB: TRANSAKCIE (KDS) -->
@@ -578,12 +591,11 @@
     // --- REALTIME STATE ---
     let categoriesList = ["Káva", "Nealko napoje", "Voda", "Alkohol", "Víno", "Cocktaily", "Rôzne"];
     let products = [];
-    let rooms = [{ id: 'main', name: 'Hlavná', cart: [] }];
+    let rooms = [{ id: 'main', name: 'Hlavná', cart: [], cardId: null }];
     let loyaltyCards = [];
     let kdsTransactions = [];
 
     let activeRoomId = 'main';
-    let activeCustomerLoyalty = null;
     let selectedCategory = 'All';
 
     let barChart = null;
@@ -604,7 +616,7 @@
         return categoryStyles[cat] || { bg: "bg-emerald-500/10", border: "border-emerald-500/30", text: "text-emerald-400", bar: "bg-emerald-500", icon: "fa-utensils" };
     }
 
-    // TOGGLE TABLETOVÝ MÓD
+    // TOGGLE TABLETOVÉHO MÓDU
     function toggleTabletMode() {
         document.body.classList.toggle('tablet-mode');
         const isTablet = document.body.classList.contains('tablet-mode');
@@ -657,6 +669,7 @@
             renderCategories();
             renderProducts();
             renderStock();
+            renderInventory();
         });
 
         db.collection('rooms').onSnapshot(snapshot => {
@@ -665,7 +678,7 @@
                 rooms.push({ id: doc.id, ...doc.data() });
             });
             if(rooms.length === 0) {
-                db.collection('rooms').doc('main').set({ name: 'Hlavná', cart: [] });
+                db.collection('rooms').doc('main').set({ name: 'Hlavná', cart: [], cardId: null });
             } else {
                 renderRooms();
                 renderCart();
@@ -687,6 +700,7 @@
                 loyaltyCards.push({ id: doc.id, ...doc.data() });
             });
             renderLoyaltyTable();
+            renderCart();
         });
     }
 
@@ -729,6 +743,7 @@
             renderLoyaltyOptions();
             renderRooms();
             renderStock();
+            renderInventory();
             renderLoyaltyTable();
             renderTransactionsTable();
             renderCart();
@@ -750,7 +765,7 @@
 
     // --- TAB NAVIGATION ---
     function switchTab(tab) {
-        ['pos', 'transactions', 'analytics', 'rooms', 'cards', 'stock'].forEach(t => {
+        ['pos', 'transactions', 'inventory', 'analytics', 'rooms', 'cards', 'stock'].forEach(t => {
             document.getElementById(`view-${t}`).classList.add('hidden');
             document.getElementById(`view-${t}`).classList.remove('flex');
             document.getElementById(`tab-${t}`).classList.remove('bg-emerald-600');
@@ -766,6 +781,8 @@
             renderTransactionsTable();
         } else if(tab === 'rooms') {
             renderRooms();
+        } else if(tab === 'inventory') {
+            renderInventory();
         }
     }
 
@@ -787,7 +804,7 @@
             }
 
             return `
-                <button onclick="filterCategory('${c}')" class="cat-filter-btn px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 border ${isSelected ? `${style.bg} ${style.border}${style.text} ring-2 ring-emerald-500/40` : 'bg-slate-900/80 border-slate-800/80 text-slate-400 hover:bg-slate-800'}">
+                <button onclick="filterCategory('${c}')" class="cat-filter-btn px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 border ${isSelected ? `${style.bg} ${style.border} ${style.text} ring-2 ring-emerald-500/40` : 'bg-slate-900/80 border-slate-800/80 text-slate-400 hover:bg-slate-800'}">
                     <i class="fa-solid ${style.icon}"></i> ${c}
                 </button>
             `;
@@ -922,17 +939,17 @@
         };
 
         if(!room.cart) room.cart = [];
-        room.cart.push({ product: customItemProduct, qty: 1 });
+        room.cart.push({ product: customItemProduct, qty: 1, sentQty: 0 });
 
         db.collection('rooms').doc(room.id).update({ cart: room.cart });
         closeCustomItemModal();
     }
 
-    // --- CART LOGIC PER ROOM ---
+    // --- CART LOGIC PER ROOM (S PODPOROU POSLANÝCH POLOŽIEK) ---
     function getCurrentRoom() {
         let room = rooms.find(r => r.id === activeRoomId);
         if(!room) {
-            room = rooms[0] || { id: 'main', name: 'Hlavná', cart: [] };
+            room = rooms[0] || { id: 'main', name: 'Hlavná', cart: [], cardId: null };
             activeRoomId = room.id;
         }
         if(!room.cart) room.cart = [];
@@ -959,7 +976,7 @@
             }
             existing.qty += 1;
         } else {
-            room.cart.push({ product: product, qty: 1 });
+            room.cart.push({ product: product, qty: 1, sentQty: 0 });
         }
 
         db.collection('rooms').doc(room.id).update({ cart: room.cart });
@@ -971,6 +988,13 @@
         if (!item) return;
 
         item.qty += delta;
+
+        if (item.qty < item.sentQty) {
+            alert("Nemožno znížiť množstvo pod hodnotu už odoslaných položiek na KDS!");
+            item.qty = item.sentQty;
+            return;
+        }
+
         if (item.qty > item.product.stock) {
             alert("Dosiahnutý limit skladu.");
             item.qty = item.product.stock;
@@ -985,12 +1009,20 @@
 
     function clearCart() {
         const room = getCurrentRoom();
-        db.collection('rooms').doc(room.id).update({ cart: [] });
+        if(confirm("Naozaj chcete vynulovať celý účet pre tento stôl?")) {
+            db.collection('rooms').doc(room.id).update({ cart: [], cardId: null });
+        }
     }
 
     function renderCart() {
         const room = getCurrentRoom();
         const container = document.getElementById('order-items');
+
+        // Nastavenie uschovanej karty pre tento stôl
+        const cardSelect = document.getElementById('cart-customer-select');
+        if (cardSelect) {
+            cardSelect.value = room.cardId || "";
+        }
         
         if (!room.cart || room.cart.length === 0) {
             container.innerHTML = `<div class="text-center text-slate-500 mt-10 text-xs font-medium">Účet je zatiaľ prázdny</div>`;
@@ -1005,13 +1037,21 @@
             const itemTotal = item.product.price * item.qty;
             subtotal += itemTotal;
             const style = getCatStyle(item.product.category);
+            const sentQty = item.sentQty || 0;
+            const unsentQty = item.qty - sentQty;
 
             return `
                 <div class="flex justify-between items-center bg-slate-950/80 border border-slate-800/80 p-2.5 rounded-xl text-xs relative overflow-hidden">
                     <div class="w-1 absolute left-0 top-0 bottom-0 ${style.bar}"></div>
                     <div class="flex-1 pl-2">
-                        <div class="font-bold text-slate-100">${item.product.name}</div>
-                        <div class="text-[10px] text-slate-400">${parseFloat(item.product.price).toFixed(2)} € / ${item.product.unit}</div>
+                        <div class="font-bold text-slate-100 flex items-center gap-1.5">
+                            ${item.product.name}
+                        </div>
+                        <div class="flex items-center gap-2 mt-0.5">
+                            <span class="text-[10px] text-slate-400">${parseFloat(item.product.price).toFixed(2)} € / ${item.product.unit}</span>
+                            ${sentQty > 0 ? `<span class="text-[9px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-1.5 py-0.2 rounded font-bold"><i class="fa-solid fa-check text-[8px] mr-1"></i>${sentQty}x POSLANÉ</span>` : ''}
+                            ${unsentQty > 0 && sentQty > 0 ? `<span class="text-[9px] bg-amber-500/20 text-amber-400 border border-amber-500/30 px-1.5 py-0.2 rounded font-bold">+${unsentQty}x nové</span>` : ''}
+                        </div>
                     </div>
                     <div class="flex items-center gap-1.5 px-2">
                         <button onclick="updateCartQty('${item.product.id}', -1)" class="w-7 h-7 bg-slate-800 hover:bg-slate-700 rounded-lg font-bold text-slate-200 transition text-sm flex items-center justify-center">-</button>
@@ -1023,6 +1063,7 @@
             `;
         }).join('');
 
+        const activeCustomerLoyalty = loyaltyCards.find(c => c.id == room.cardId) || null;
         let discountPct = activeCustomerLoyalty ? activeCustomerLoyalty.discount : 0;
         let discountAmount = (subtotal * discountPct) / 100;
         let total = subtotal - discountAmount;
@@ -1033,12 +1074,12 @@
     }
 
     function applyCustomerLoyalty() {
-        const cardId = document.getElementById('cart-customer-select').value;
-        activeCustomerLoyalty = loyaltyCards.find(c => c.id == cardId) || null;
-        renderCart();
+        const cardId = document.getElementById('cart-customer-select').value || null;
+        const room = getCurrentRoom();
+        db.collection('rooms').doc(room.id).update({ cardId: cardId });
     }
 
-    // --- KDS ODOSLANIE ---
+    // --- KDS ODOSLANIE (IBA NOVÉ POLOŽKY) ---
     function sendToKitchen() {
         const room = getCurrentRoom();
         if (!room.cart || room.cart.length === 0) {
@@ -1046,35 +1087,116 @@
             return;
         }
 
-        const total = parseFloat(document.getElementById('total-val').innerText);
-        const now = new Date();
-
+        // Vyfiltrovať iba položky, ktoré ešte neboli odoslané na KDS
+        let newItemsToSend = [];
         room.cart.forEach(item => {
-            const p = products.find(prod => prod.id === item.product.id);
+            const sentQty = item.sentQty || 0;
+            const diff = item.qty - sentQty;
+            if (diff > 0) {
+                newItemsToSend.push({
+                    id: item.product.id,
+                    name: item.product.name,
+                    qty: diff,
+                    unit: item.product.unit,
+                    price: item.product.price
+                });
+                item.sentQty = item.qty; // Označiť všetko ako poslané
+            }
+        });
+
+        if (newItemsToSend.length === 0) {
+            alert("Všetky položky na tomto účte už boli odoslané na KDS!");
+            return;
+        }
+
+        // Odpätie zo skladu pre nové položky
+        newItemsToSend.forEach(item => {
+            const p = products.find(prod => prod.id === item.id);
             if (p) {
-                const newStock = p.stock - item.qty;
+                const newStock = Math.max(0, p.stock - item.qty);
                 db.collection('products').doc(p.id).update({ stock: newStock });
             }
         });
+
+        const totalForNew = newItemsToSend.reduce((a, b) => a + (b.price * b.qty), 0);
+        const now = new Date();
 
         const kdsOrder = {
             timestamp: now.toISOString(),
             timeStr: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
             hour: now.getHours(),
             room: room.name,
-            total: total,
+            total: totalForNew,
             includeInAnalytics: true,
-            items: room.cart.map(i => ({
-                id: i.product.id,
-                name: i.product.name,
-                qty: i.qty,
-                unit: i.product.unit,
-                price: i.product.price
-            }))
+            items: newItemsToSend
         };
 
         db.collection('transactions').add(kdsOrder);
-        alert(`Objednávka bola odoslaná na KDS pre ${room.name}!`);
+        db.collection('rooms').doc(room.id).update({ cart: room.cart });
+
+        alert(`Na KDS boli úspešne odoslané nové položky (${newItemsToSend.length}) pre ${room.name}!`);
+    }
+
+    // --- TAB: INVENTÁR LOGIC ---
+    function renderInventory() {
+        const container = document.getElementById('inventory-grid');
+        if(!container) return;
+
+        if(products.length === 0) {
+            container.innerHTML = `<div class="col-span-full text-center py-12 text-slate-500 font-semibold">Žiadne produkty v databáze</div>`;
+            return;
+        }
+
+        container.innerHTML = products.map(p => {
+            const style = getCatStyle(p.category);
+            let statusBadge = `<span class="text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-md font-bold">Dostatok</span>`;
+            if (p.stock <= 0) {
+                statusBadge = `<span class="text-[10px] bg-rose-500/20 text-rose-400 border border-rose-500/30 px-2 py-0.5 rounded-md font-bold">Vypredané</span>`;
+            } else if (p.stock <= 10) {
+                statusBadge = `<span class="text-[10px] bg-amber-500/20 text-amber-400 border border-amber-500/30 px-2 py-0.5 rounded-md font-bold">Nízky stav</span>`;
+            }
+
+            return `
+                <div class="bg-slate-950/80 border border-slate-800/80 rounded-2xl p-4 flex flex-col justify-between shadow-xl relative overflow-hidden">
+                    <div class="w-1 absolute left-0 top-0 bottom-0 ${style.bar}"></div>
+                    <div class="pl-2">
+                        <div class="flex justify-between items-center mb-1">
+                            <span class="text-xs font-bold text-slate-400">${p.category}</span>
+                            ${statusBadge}
+                        </div>
+                        <h3 class="font-bold text-slate-100 text-base mb-2">${p.name}</h3>
+                        <div class="text-2xl font-black text-slate-100 font-mono mb-3">
+                            ${p.stock} <span class="text-sm text-slate-400 font-normal">${p.unit}</span>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center gap-2 pt-2 border-t border-slate-800/80 pl-2">
+                        <button onclick="quickUpdateStock('${p.id}', 10)" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-200 py-2 rounded-xl font-bold text-xs transition">+10</button>
+                        <button onclick="quickUpdateStock('${p.id}', 50)" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-200 py-2 rounded-xl font-bold text-xs transition">+50</button>
+                        <button onclick="setCustomStockPrompt('${p.id}', ${p.stock})" class="bg-emerald-600 hover:bg-emerald-500 text-white p-2 rounded-xl text-xs font-bold transition flex items-center gap-1">
+                            <i class="fa-solid fa-pen"></i> Nastaviť
+                        </button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    function quickUpdateStock(productId, amount) {
+        const p = products.find(item => item.id === productId);
+        if (p) {
+            db.collection('products').doc(productId).update({ stock: p.stock + amount });
+        }
+    }
+
+    function setCustomStockPrompt(productId, currentStock) {
+        const val = prompt("Zadajte nové presné množstvo na sklade:", currentStock);
+        if (val !== null) {
+            const num = parseInt(val);
+            if (!isNaN(num) && num >= 0) {
+                db.collection('products').doc(productId).update({ stock: num });
+            }
+        }
     }
 
     function renderTransactionsTable() {
@@ -1177,6 +1299,8 @@
 
     function finalizeTransaction(method) {
         const total = parseFloat(document.getElementById('total-val').innerText);
+        const room = getCurrentRoom();
+        const activeCustomerLoyalty = loyaltyCards.find(c => c.id == room.cardId) || null;
 
         if (activeCustomerLoyalty) {
             const pointsEarned = Math.floor(total);
@@ -1187,7 +1311,7 @@
             alert(`Platba ${total.toFixed(2)} € bola úspešne vyrovnaná (${method}).`);
         }
 
-        clearCart();
+        db.collection('rooms').doc(room.id).update({ cart: [], cardId: null });
         closePaymentModal();
     }
 
@@ -1371,7 +1495,7 @@
         if (id) {
             db.collection('rooms').doc(id).update({ name: name });
         } else {
-            db.collection('rooms').add({ name: name, cart: [] });
+            db.collection('rooms').add({ name: name, cart: [], cardId: null });
         }
 
         closeRoomModal();
