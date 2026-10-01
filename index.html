@@ -2,7 +2,7 @@
 <html lang="sk">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GARD POS - Cloud Synced Terminal</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -17,62 +17,33 @@
 
     <style>
         .modal { transition: opacity 0.25s ease; }
-        body { background-color: #080c14; color: #f1f5f9; touch-action: manipulation; }
+        body { background-color: #0b0f19; color: #f1f5f9; }
         ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: #0b0f19; }
-        ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #334155; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
         @keyframes pulseGlow {
             0%, 100% { transform: scale(1); opacity: 1; }
             50% { transform: scale(1.08); opacity: 0.8; }
         }
         .splash-logo { animation: pulseGlow 2s infinite ease-in-out; }
-        
-        .product-card {
-            background: linear-gradient(145deg, rgba(15, 23, 42, 0.85), rgba(10, 15, 28, 0.95));
-            backdrop-filter: blur(8px);
-            transition: all 0.15s ease-out;
-        }
-        .product-card:active {
-            transform: scale(0.97);
-        }
-
-        /* TABLETOVÝ MÓD */
-        body.tablet-mode .products-grid-layout {
-            grid-template-cols: repeat(auto-fill, minmax(180px, 1fr)) !important;
-            gap: 1.25rem !important;
-        }
-        body.tablet-mode .product-card {
-            padding: 1.25rem !important;
-            min-height: 110px !important;
-        }
-        body.tablet-mode .product-title {
-            font-size: 1.1rem !important;
-            line-height: 1.3 !important;
-            margin-bottom: 0.5rem !important;
-        }
-        body.tablet-mode .cat-filter-btn {
-            padding: 0.75rem 1.25rem !important;
-            font-size: 0.875rem !important;
-        }
-        body.tablet-mode .order-panel-width {
-            width: 380px !important;
-        }
     </style>
 </head>
-<body class="h-screen flex flex-col font-sans overflow-hidden bg-slate-950 text-slate-100 select-none tablet-mode">
+<body class="h-screen flex flex-col font-sans overflow-hidden bg-slate-950 text-slate-100 select-none">
 
 <script>
-    // Konfigurácia Firebase
+    // ==========================================
+    // ⚙️ TU VLOŽTE VÁŠ FIREBASE CONFIG
+    // ==========================================
     const firebaseConfig = {
-        apiKey: "AIzaSyDNReaEooXx-6k5L7xQVRugHQ_aPAjCLIw",
-        authDomain: "gard-pos.firebaseapp.com",
-        projectId: "gard-pos",
-        storageBucket: "gard-pos.firebasestorage.app",
-        messagingSenderId: "597035606534",
-        appId: "1:597035606534:web:824ebae8ea54a14c4f9987"
+        apiKey: "PASTE_YOUR_API_KEY_HERE",
+        authDomain: "PASTE_YOUR_PROJECT_ID.firebaseapp.com",
+        projectId: "PASTE_YOUR_PROJECT_ID",
+        storageBucket: "PASTE_YOUR_PROJECT_ID.appspot.com",
+        messagingSenderId: "PASTE_YOUR_SENDER_ID",
+        appId: "PASTE_YOUR_APP_ID"
     };
 
+    // Inicializácia Firebase
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 </script>
@@ -95,7 +66,7 @@
 
     <!-- 2. LOGIN MODAL / PIN PAD -->
     <div id="pin-modal" class="fixed inset-0 z-40 bg-slate-950/95 backdrop-blur-md hidden items-center justify-center p-4">
-        <div class="bg-slate-900/90 border border-slate-800/80 rounded-3xl p-8 w-full max-w-sm text-center shadow-2xl backdrop-blur-xl">
+        <div class="bg-slate-900 border border-slate-800 rounded-3xl p-8 w-full max-w-sm text-center shadow-2xl">
             <div class="w-16 h-16 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 mx-auto flex items-center justify-center font-black text-2xl text-emerald-400 shadow-lg mb-4">G</div>
             <h2 class="text-2xl font-bold mb-1">GARD POS</h2>
             <p class="text-xs text-slate-400 mb-6">Zadajte PIN pre prihlásenie</p>
@@ -108,17 +79,17 @@
             </div>
 
             <div class="grid grid-cols-3 gap-3 mb-6">
-                <button onclick="pressPin('1')" class="h-14 bg-slate-950/80 hover:bg-slate-800 border border-slate-800 text-xl font-bold rounded-2xl transition active:scale-95">1</button>
-                <button onclick="pressPin('2')" class="h-14 bg-slate-950/80 hover:bg-slate-800 border border-slate-800 text-xl font-bold rounded-2xl transition active:scale-95">2</button>
-                <button onclick="pressPin('3')" class="h-14 bg-slate-950/80 hover:bg-slate-800 border border-slate-800 text-xl font-bold rounded-2xl transition active:scale-95">3</button>
-                <button onclick="pressPin('4')" class="h-14 bg-slate-950/80 hover:bg-slate-800 border border-slate-800 text-xl font-bold rounded-2xl transition active:scale-95">4</button>
-                <button onclick="pressPin('5')" class="h-14 bg-slate-950/80 hover:bg-slate-800 border border-slate-800 text-xl font-bold rounded-2xl transition active:scale-95">5</button>
-                <button onclick="pressPin('6')" class="h-14 bg-slate-950/80 hover:bg-slate-800 border border-slate-800 text-xl font-bold rounded-2xl transition active:scale-95">6</button>
-                <button onclick="pressPin('7')" class="h-14 bg-slate-950/80 hover:bg-slate-800 border border-slate-800 text-xl font-bold rounded-2xl transition active:scale-95">7</button>
-                <button onclick="pressPin('8')" class="h-14 bg-slate-950/80 hover:bg-slate-800 border border-slate-800 text-xl font-bold rounded-2xl transition active:scale-95">8</button>
-                <button onclick="pressPin('9')" class="h-14 bg-slate-950/80 hover:bg-slate-800 border border-slate-800 text-xl font-bold rounded-2xl transition active:scale-95">9</button>
+                <button onclick="pressPin('1')" class="h-14 bg-slate-950 hover:bg-slate-800 border border-slate-800 text-xl font-bold rounded-2xl transition active:scale-95">1</button>
+                <button onclick="pressPin('2')" class="h-14 bg-slate-950 hover:bg-slate-800 border border-slate-800 text-xl font-bold rounded-2xl transition active:scale-95">2</button>
+                <button onclick="pressPin('3')" class="h-14 bg-slate-950 hover:bg-slate-800 border border-slate-800 text-xl font-bold rounded-2xl transition active:scale-95">3</button>
+                <button onclick="pressPin('4')" class="h-14 bg-slate-950 hover:bg-slate-800 border border-slate-800 text-xl font-bold rounded-2xl transition active:scale-95">4</button>
+                <button onclick="pressPin('5')" class="h-14 bg-slate-950 hover:bg-slate-800 border border-slate-800 text-xl font-bold rounded-2xl transition active:scale-95">5</button>
+                <button onclick="pressPin('6')" class="h-14 bg-slate-950 hover:bg-slate-800 border border-slate-800 text-xl font-bold rounded-2xl transition active:scale-95">6</button>
+                <button onclick="pressPin('7')" class="h-14 bg-slate-950 hover:bg-slate-800 border border-slate-800 text-xl font-bold rounded-2xl transition active:scale-95">7</button>
+                <button onclick="pressPin('8')" class="h-14 bg-slate-950 hover:bg-slate-800 border border-slate-800 text-xl font-bold rounded-2xl transition active:scale-95">8</button>
+                <button onclick="pressPin('9')" class="h-14 bg-slate-950 hover:bg-slate-800 border border-slate-800 text-xl font-bold rounded-2xl transition active:scale-95">9</button>
                 <button onclick="clearPin()" class="h-14 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 font-bold rounded-2xl transition active:scale-95"><i class="fa-solid fa-eraser"></i></button>
-                <button onclick="pressPin('0')" class="h-14 bg-slate-950/80 hover:bg-slate-800 border border-slate-800 text-xl font-bold rounded-2xl transition active:scale-95">0</button>
+                <button onclick="pressPin('0')" class="h-14 bg-slate-950 hover:bg-slate-800 border border-slate-800 text-xl font-bold rounded-2xl transition active:scale-95">0</button>
                 <button onclick="enterPin()" class="h-14 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-2xl transition active:scale-95"><i class="fa-solid fa-arrow-right"></i></button>
             </div>
             <p id="pin-error" class="text-xs text-rose-400 font-bold hidden"><i class="fa-solid fa-circle-exclamation"></i> Neplatný PIN kód!</p>
@@ -128,104 +99,91 @@
     <!-- MAIN INTERFACE -->
     <div id="main-interface" class="h-full flex flex-col hidden">
         <!-- Top Navigation -->
-        <header class="bg-slate-900/90 border-b border-slate-800/80 text-white flex justify-between items-center px-4 md:px-6 py-2.5 shadow-2xl backdrop-blur-md shrink-0 gap-2">
-            <div class="flex items-center space-x-3 shrink-0">
-                <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-500/20 to-teal-500/10 border border-emerald-500/30 flex items-center justify-center font-black text-emerald-400 text-lg shadow-inner">G</div>
-                <div class="hidden sm:block">
-                    <h1 class="text-lg font-black tracking-wider text-slate-100">GARD <span class="text-emerald-400">POS</span></h1>
-                    <p class="text-[11px] text-slate-400">Obsluha: <span id="current-user-display" class="text-emerald-400 font-bold">---</span></p>
+        <header class="bg-slate-900/90 border-b border-slate-800 text-white flex justify-between items-center px-6 py-3 shadow-2xl backdrop-blur-md shrink-0">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center font-black text-emerald-400 text-xl shadow-inner">G</div>
+                <div>
+                    <h1 class="text-xl font-black tracking-wider text-slate-100">GARD <span class="text-emerald-400">POS</span></h1>
+                    <p class="text-xs text-slate-400">Obsluha: <span id="current-user-display" class="text-emerald-400 font-bold">---</span> <span class="text-xs bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full ml-2 font-mono">LIVE CLOUD</span></p>
                 </div>
             </div>
-
-            <nav class="flex space-x-1.5 overflow-x-auto py-1">
-                <button onclick="switchTab('pos')" id="tab-pos" class="px-3.5 py-2 rounded-xl font-bold bg-emerald-600 hover:bg-emerald-500 transition text-xs flex items-center gap-1.5 shadow-lg shadow-emerald-600/20 whitespace-nowrap"><i class="fa-solid fa-calculator"></i>Pokladňa</button>
-                <button onclick="switchTab('transactions')" id="tab-transactions" class="px-3.5 py-2 rounded-xl font-semibold hover:bg-slate-800 text-slate-300 transition text-xs flex items-center gap-1.5 whitespace-nowrap"><i class="fa-solid fa-receipt"></i>KDS</button>
-                <button onclick="switchTab('analytics')" id="tab-analytics" class="px-3.5 py-2 rounded-xl font-semibold hover:bg-slate-800 text-slate-300 transition text-xs flex items-center gap-1.5 whitespace-nowrap"><i class="fa-solid fa-chart-pie"></i>Grafy</button>
-                <button onclick="switchTab('rooms')" id="tab-rooms" class="px-3.5 py-2 rounded-xl font-semibold hover:bg-slate-800 text-slate-300 transition text-xs flex items-center gap-1.5 whitespace-nowrap"><i class="fa-solid fa-hotel"></i>Stoly</button>
-                <button onclick="switchTab('cards')" id="tab-cards" class="px-3.5 py-2 rounded-xl font-semibold hover:bg-slate-800 text-slate-300 transition text-xs flex items-center gap-1.5 whitespace-nowrap"><i class="fa-solid fa-id-card"></i>Karty</button>
-                <button onclick="switchTab('inventory')" id="tab-inventory" class="px-3.5 py-2 rounded-xl font-semibold hover:bg-slate-800 text-slate-300 transition text-xs flex items-center gap-1.5 whitespace-nowrap"><i class="fa-solid fa-clipboard-check"></i>Inventár</button>
-                <button onclick="switchTab('stock')" id="tab-stock" class="px-3.5 py-2 rounded-xl font-semibold hover:bg-slate-800 text-slate-300 transition text-xs flex items-center gap-1.5 whitespace-nowrap"><i class="fa-solid fa-boxes-stacked"></i>Sklad</button>
+            <nav class="flex space-x-2">
+                <button onclick="switchTab('pos')" id="tab-pos" class="px-4 py-2 rounded-xl font-semibold bg-emerald-600 hover:bg-emerald-500 transition text-sm flex items-center gap-2 shadow-lg shadow-emerald-600/20"><i class="fa-solid fa-calculator"></i>Pokladňa</button>
+                <button onclick="switchTab('transactions')" id="tab-transactions" class="px-4 py-2 rounded-xl font-semibold hover:bg-slate-800 text-slate-300 transition text-sm flex items-center gap-2"><i class="fa-solid fa-receipt"></i>Transakcie (KDS)</button>
+                <button onclick="switchTab('analytics')" id="tab-analytics" class="px-4 py-2 rounded-xl font-semibold hover:bg-slate-800 text-slate-300 transition text-sm flex items-center gap-2"><i class="fa-solid fa-chart-pie"></i>Analytika & Grafy</button>
+                <button onclick="switchTab('rooms')" id="tab-rooms" class="px-4 py-2 rounded-xl font-semibold hover:bg-slate-800 text-slate-300 transition text-sm flex items-center gap-2"><i class="fa-solid fa-hotel"></i>Izby / Stoly</button>
+                <button onclick="switchTab('cards')" id="tab-cards" class="px-4 py-2 rounded-xl font-semibold hover:bg-slate-800 text-slate-300 transition text-sm flex items-center gap-2"><i class="fa-solid fa-id-card"></i>Vernostné karty</button>
+                <button onclick="switchTab('stock')" id="tab-stock" class="px-4 py-2 rounded-xl font-semibold hover:bg-slate-800 text-slate-300 transition text-sm flex items-center gap-2"><i class="fa-solid fa-boxes-stacked"></i>Sklad & Produkty</button>
             </nav>
-
-            <div class="flex items-center gap-2 shrink-0">
-                <button onclick="toggleTabletMode()" id="tablet-toggle-btn" class="bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-400 border border-indigo-500/30 px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5">
-                    <i class="fa-solid fa-tablet-screen-button"></i> <span class="hidden md:inline">Tablet Mod:</span> <span id="tablet-status-text" class="text-emerald-400 font-extrabold">ZAP</span>
-                </button>
-                <button onclick="logout()" class="bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5">
-                    <i class="fa-solid fa-right-from-bracket"></i>
-                </button>
-            </div>
+            <button onclick="logout()" class="bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2">
+                <i class="fa-solid fa-right-from-bracket"></i> Odhlásiť
+            </button>
         </header>
 
         <!-- Main Content Area -->
-        <main class="flex-1 overflow-hidden p-3 md:p-4">
+        <main class="flex-1 overflow-hidden p-4">
 
             <!-- TAB: POKLADŇA -->
-            <div id="view-pos" class="h-full flex gap-3 md:gap-4">
+            <div id="view-pos" class="h-full flex gap-4">
                 <!-- Left: Products Area -->
-                <div class="flex-1 bg-slate-900/40 border border-slate-800/80 rounded-2xl p-3 md:p-4 flex flex-col h-full shadow-2xl backdrop-blur-md overflow-hidden">
-                    <div class="flex justify-between items-center mb-3">
-                        <div class="flex items-center gap-2">
-                            <span class="w-8 h-8 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 text-sm"><i class="fa-solid fa-border-all"></i></span>
-                            <h2 class="text-base font-bold text-slate-100">Ponuka Produktov</h2>
+                <div class="flex-1 bg-slate-900/60 border border-slate-800 rounded-2xl p-4 flex flex-col h-full shadow-2xl backdrop-blur-md">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-lg font-bold text-slate-100 flex items-center gap-2"><i class="fa-solid fa-utensils text-emerald-400"></i> Ponuka Produktov</h2>
+                        <div class="flex items-center gap-3">
+                            <div id="category-filters" class="flex gap-2"></div>
+                            <button onclick="openCustomItemModal()" class="bg-amber-500/10 border border-amber-500/30 hover:bg-amber-500 text-amber-400 hover:text-slate-950 px-3.5 py-1.5 rounded-xl font-black text-xs transition flex items-center gap-1.5">
+                                <i class="fa-solid fa-bolt"></i> + Vlastná položka
+                            </button>
                         </div>
-                        <button onclick="openCustomItemModal()" class="bg-amber-500/10 border border-amber-500/30 hover:bg-amber-500 text-amber-400 hover:text-slate-950 px-3.5 py-2 rounded-xl font-black text-xs transition flex items-center gap-2 shadow-lg shadow-amber-500/10">
-                            <i class="fa-solid fa-bolt text-amber-400 hover:text-slate-950"></i> + Vlastná položka
-                        </button>
                     </div>
-
-                    <!-- Category Bar -->
-                    <div id="category-filters" class="flex gap-2 mb-3.5 overflow-x-auto pb-1 shrink-0"></div>
-
-                    <!-- Products Grid (BEZ CIEN MOŽNOSŤ KLIKANIA) -->
-                    <div id="products-grid" class="products-grid-layout grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 overflow-y-auto flex-1 pr-1"></div>
+                    <div id="products-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 overflow-y-auto flex-1 pr-1"></div>
                 </div>
 
                 <!-- Right: Order Summary -->
-                <div class="order-panel-width w-[340px] md:w-[380px] bg-slate-900/70 border border-slate-800/80 rounded-2xl p-3.5 md:p-4 flex flex-col h-full shadow-2xl backdrop-blur-md shrink-0">
-                    <div class="flex justify-between items-center border-b border-slate-800/80 pb-2.5 mb-2.5">
+                <div class="w-[400px] bg-slate-900/80 border border-slate-800 rounded-2xl p-4 flex flex-col h-full shadow-2xl backdrop-blur-md">
+                    <div class="flex justify-between items-center border-b border-slate-800 pb-3 mb-3">
                         <div>
-                            <h2 class="text-base font-bold text-slate-100 flex items-center gap-2">
-                                <i class="fa-solid fa-receipt text-emerald-400"></i> Účet
-                            </h2>
-                            <span id="active-room-display" class="text-xs text-emerald-400 font-bold">Stôl: Hlavná</span>
+                            <h2 class="text-lg font-bold text-slate-100">Aktuálny účet</h2>
+                            <span id="active-room-display" class="text-xs text-emerald-400 font-bold">Stôl / Izba: Hlavná</span>
                         </div>
-                        <button onclick="clearCart()" class="text-xs text-rose-400 hover:text-rose-300 px-2.5 py-1 rounded-xl border border-rose-500/20 hover:bg-rose-500/10 transition font-semibold">
-                            <i class="fa-solid fa-trash-can mr-1"></i> Vymazať
-                        </button>
+                        <button onclick="clearCart()" class="text-xs text-rose-400 hover:text-rose-300 px-2 py-1 rounded-lg border border-rose-500/20 hover:bg-rose-500/10">Vynulovať</button>
                     </div>
 
-                    <div class="mb-2.5">
-                        <select id="cart-customer-select" onchange="applyCustomerLoyalty()" class="w-full text-xs border border-slate-800 rounded-xl p-2.5 bg-slate-950 text-slate-200 focus:outline-none focus:border-emerald-500/50">
+                    <div class="mb-3">
+                        <div class="flex justify-between items-center mb-1">
+                            <label class="block text-xs font-semibold text-slate-400">Vernostný zákazník:</label>
+                            <span id="active-user-points-badge" class="text-xs font-bold text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full hidden">0 b</span>
+                        </div>
+                        <select id="cart-customer-select" onchange="applyCustomerLoyalty()" class="w-full text-sm border border-slate-700 rounded-xl p-2.5 bg-slate-950 text-slate-200 focus:outline-none focus:border-emerald-500">
                             <option value="">-- Bez karty --</option>
                         </select>
                     </div>
 
-                    <div id="order-items" class="flex-1 overflow-y-auto space-y-2 pr-1 mb-2.5">
-                        <div class="text-center text-slate-500 mt-10 text-xs font-medium">Účet je zatiaľ prázdny</div>
+                    <div id="order-items" class="flex-1 overflow-y-auto space-y-2 pr-1 mb-3">
+                        <div class="text-center text-slate-500 mt-10">Účet je zatiaľ prázdny</div>
                     </div>
 
-                    <div class="border-t border-slate-800/80 pt-2.5 space-y-1 mb-3">
-                        <div class="flex justify-between text-xs text-slate-400">
+                    <div class="border-t border-slate-800 pt-3 space-y-1.5 mb-4">
+                        <div class="flex justify-between text-sm text-slate-400">
                             <span>Medzisúčet:</span>
-                            <span id="subtotal-val" class="text-slate-200 font-semibold">0.00 €</span>
+                            <span id="subtotal-val" class="text-slate-200">0.00 €</span>
                         </div>
-                        <div class="flex justify-between text-xs text-slate-400">
+                        <div class="flex justify-between text-sm text-slate-400">
                             <span>Zľava:</span>
                             <span id="discount-val" class="text-emerald-400 font-bold">0.00 €</span>
                         </div>
-                        <div class="flex justify-between text-lg md:text-xl font-black text-slate-100 border-t border-slate-800/80 pt-2">
+                        <div class="flex justify-between text-xl font-black text-slate-100 border-t border-slate-800 pt-2">
                             <span>Spolu:</span>
                             <span id="total-val" class="text-emerald-400">0.00 €</span>
                         </div>
                     </div>
 
                     <div class="space-y-2">
-                        <button onclick="sendToKitchen()" class="w-full bg-amber-600/90 hover:bg-amber-500 text-white font-bold py-3 rounded-xl transition flex items-center justify-center gap-2 shadow-lg shadow-amber-600/15 text-xs tracking-wide">
-                            <i class="fa-solid fa-paper-plane"></i> ODOSLAŤ NOVÉ NA KDS
+                        <button onclick="sendToKitchen()" class="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold py-3 rounded-xl transition flex items-center justify-center gap-2 shadow-lg shadow-amber-600/20 text-sm">
+                            <i class="fa-solid fa-paper-plane"></i> Odoslať na KDS & Uložiť na účet
                         </button>
-                        <button onclick="openPaymentModal()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-black py-3.5 rounded-xl text-base shadow-lg shadow-emerald-600/20 transition flex items-center justify-center gap-2 tracking-wider">
-                            <i class="fa-solid fa-credit-card"></i> ZAPLATIŤ ÚČET
+                        <button onclick="openPaymentModal()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3.5 rounded-xl text-lg shadow-lg shadow-emerald-600/20 transition flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-credit-card"></i> PLATBA
                         </button>
                     </div>
                 </div>
@@ -334,28 +292,6 @@
                 </table>
             </div>
 
-            <!-- TAB: INVENTÁR (NOVÉ) -->
-            <div id="view-inventory" class="h-full hidden flex-col bg-slate-900/60 border border-slate-800 rounded-2xl shadow-2xl p-6 overflow-y-auto">
-                <div class="flex justify-between items-center mb-6">
-                    <div>
-                        <h2 class="text-xl font-bold text-slate-100 flex items-center gap-2"><i class="fa-solid fa-clipboard-check text-emerald-400"></i> Inventúra & Stav Skladu</h2>
-                        <p class="text-sm text-slate-400">Zadajte skutočné fyzické množstvo produktov pre rýchlu úpravu inventára.</p>
-                    </div>
-                </div>
-                <table class="w-full text-left border-collapse">
-                    <thead>
-                        <tr class="border-b border-slate-800 bg-slate-950/60 text-xs font-semibold text-slate-400 uppercase">
-                            <th class="p-4">Produkt</th>
-                            <th class="p-4">Kategória</th>
-                            <th class="p-4">Súčasný Stav</th>
-                            <th class="p-4">Fyzicky Zistené Množstvo</th>
-                            <th class="p-4 text-right">Uložiť Inventúru</th>
-                        </tr>
-                    </thead>
-                    <tbody id="inventory-table-body" class="divide-y divide-slate-800 text-sm"></tbody>
-                </table>
-            </div>
-
             <!-- TAB: SKLAD & PRODUKTY -->
             <div id="view-stock" class="h-full hidden flex-col bg-slate-900/60 border border-slate-800 rounded-2xl shadow-2xl p-6 overflow-y-auto">
                 <div class="flex justify-between items-center mb-6">
@@ -364,9 +300,6 @@
                         <p class="text-sm text-slate-400">Pridávanie, úprava cien a skladových zásob.</p>
                     </div>
                     <div class="flex gap-2">
-                        <button onclick="importApexCatalog()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 transition shadow-lg shadow-indigo-600/20">
-                            <i class="fa-solid fa-cloud-arrow-up"></i> 🚀 Importovať Katalóg
-                        </button>
                         <button onclick="openCategoriesManageModal()" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 px-4 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 transition">
                             <i class="fa-solid fa-list"></i> Správa Kategórií
                         </button>
@@ -380,7 +313,7 @@
                         <tr class="border-b border-slate-800 bg-slate-950/60 text-xs font-semibold text-slate-400 uppercase">
                             <th class="p-4">Produkt</th>
                             <th class="p-4">Kategória</th>
-                            <th class="p-4">Cena</th>
+                            <th class="p-4">Cena / Body</th>
                             <th class="p-4">Na sklade (m / ks)</th>
                             <th class="p-4 text-right">Akcie</th>
                         </tr>
@@ -509,7 +442,7 @@
                     <select id="prod-cat-select" class="w-full p-3 border border-slate-700 bg-slate-950 text-slate-100 rounded-xl text-sm focus:outline-none focus:border-emerald-500"></select>
                 </div>
                 <div>
-                    <label class="block text-xs font-bold text-slate-400 mb-1">Cena (€):</label>
+                    <label class="block text-xs font-bold text-slate-400 mb-1">Cena (€ / Body):</label>
                     <input type="number" step="0.10" id="prod-price-input" class="w-full p-3 border border-slate-700 bg-slate-950 text-slate-100 rounded-xl text-sm focus:outline-none focus:border-emerald-500" placeholder="2.50">
                 </div>
             </div>
@@ -593,40 +526,20 @@
     let enteredPin = '';
 
     // --- REALTIME STATE ---
-    let categoriesList = ["Káva", "Nealko napoje", "Voda", "Alkohol", "Víno", "Cocktaily", "Rôzne"];
+    let categoriesList = ["Káva & Nápoje", "Jedlo", "Dezerty", "Darčeky", "Rôzne"];
     let products = [];
-    let rooms = [{ id: 'main', name: 'Hlavná', cart: [], customerCardId: null }];
+    let rooms = [{ id: 'main', name: 'Hlavná', cart: [] }];
     let loyaltyCards = [];
     let kdsTransactions = [];
 
     let activeRoomId = 'main';
+    let activeCustomerLoyalty = null;
     let selectedCategory = 'All';
 
     let barChart = null;
     let pieChart = null;
 
-    // FARBY A IKONY KATEGÓRIÍ
-    const categoryStyles = {
-        "Káva": { bg: "bg-orange-500/10", border: "border-orange-500/30", text: "text-orange-400", bar: "bg-orange-500", icon: "fa-mug-hot" },
-        "Nealko napoje": { bg: "bg-blue-500/10", border: "border-blue-500/30", text: "text-blue-400", bar: "bg-blue-500", icon: "fa-bottle-water" },
-        "Voda": { bg: "bg-cyan-500/10", border: "border-cyan-500/30", text: "text-cyan-400", bar: "bg-cyan-500", icon: "fa-glass-water" },
-        "Alkohol": { bg: "bg-amber-500/10", border: "border-amber-500/30", text: "text-amber-400", bar: "bg-amber-500", icon: "fa-beer-mug-empty" },
-        "Víno": { bg: "bg-purple-500/10", border: "border-purple-500/30", text: "text-purple-400", bar: "bg-purple-500", icon: "fa-wine-glass-empty" },
-        "Cocktaily": { bg: "bg-pink-500/10", border: "border-pink-500/30", text: "text-pink-400", bar: "bg-pink-500", icon: "fa-martini-glass-citrus" },
-        "Rôzne": { bg: "bg-slate-500/10", border: "border-slate-500/30", text: "text-slate-400", bar: "bg-slate-500", icon: "fa-tag" }
-    };
-
-    function getCatStyle(cat) {
-        return categoryStyles[cat] || { bg: "bg-emerald-500/10", border: "border-emerald-500/30", text: "text-emerald-400", bar: "bg-emerald-500", icon: "fa-utensils" };
-    }
-
-    function toggleTabletMode() {
-        document.body.classList.toggle('tablet-mode');
-        const isTablet = document.body.classList.contains('tablet-mode');
-        document.getElementById('tablet-status-text').innerText = isTablet ? 'ZAP' : 'VYP';
-        document.getElementById('tablet-status-text').className = isTablet ? 'text-emerald-400 font-extrabold' : 'text-slate-500 font-bold';
-    }
-
+    // --- INITIALIZATION ---
     window.onload = function() {
         runSplash();
         initRealtimeListeners();
@@ -654,6 +567,7 @@
 
     // --- FIRESTORE REALTIME LISTENERS ---
     function initRealtimeListeners() {
+        // 1. Synchronizácia Kategórií
         db.collection('settings').doc('categories').onSnapshot(doc => {
             if(doc.exists && doc.data().list) {
                 categoriesList = doc.data().list;
@@ -663,6 +577,7 @@
             renderCategories();
         });
 
+        // 2. Synchronizácia Produktov
         db.collection('products').onSnapshot(snapshot => {
             products = [];
             snapshot.forEach(doc => {
@@ -671,22 +586,23 @@
             renderCategories();
             renderProducts();
             renderStock();
-            renderInventoryTable();
         });
 
+        // 3. Synchronizácia Izieb/Stolov a ich Košíkov
         db.collection('rooms').onSnapshot(snapshot => {
             rooms = [];
             snapshot.forEach(doc => {
                 rooms.push({ id: doc.id, ...doc.data() });
             });
             if(rooms.length === 0) {
-                db.collection('rooms').doc('main').set({ name: 'Hlavná', cart: [], customerCardId: null });
+                db.collection('rooms').doc('main').set({ name: 'Hlavná', cart: [] });
             } else {
                 renderRooms();
                 renderCart();
             }
         });
 
+        // 4. Synchronizácia KDS Transakcií
         db.collection('transactions').onSnapshot(snapshot => {
             kdsTransactions = [];
             snapshot.forEach(doc => {
@@ -696,14 +612,18 @@
             if(barChart) updateAnalyticsAndCharts();
         });
 
+        // 5. Synchronizácia Vernostných kariet
         db.collection('cards').onSnapshot(snapshot => {
             loyaltyCards = [];
             snapshot.forEach(doc => {
                 loyaltyCards.push({ id: doc.id, ...doc.data() });
             });
+            if (activeCustomerLoyalty) {
+                activeCustomerLoyalty = loyaltyCards.find(c => c.id === activeCustomerLoyalty.id) || null;
+            }
             renderLoyaltyTable();
-            renderLoyaltyOptions();
-            renderCart();
+            renderProducts();
+            updateCustomerBadge();
         });
     }
 
@@ -746,7 +666,6 @@
             renderLoyaltyOptions();
             renderRooms();
             renderStock();
-            renderInventoryTable();
             renderLoyaltyTable();
             renderTransactionsTable();
             renderCart();
@@ -768,7 +687,7 @@
 
     // --- TAB NAVIGATION ---
     function switchTab(tab) {
-        ['pos', 'transactions', 'analytics', 'rooms', 'cards', 'inventory', 'stock'].forEach(t => {
+        ['pos', 'transactions', 'analytics', 'rooms', 'cards', 'stock'].forEach(t => {
             document.getElementById(`view-${t}`).classList.add('hidden');
             document.getElementById(`view-${t}`).classList.remove('flex');
             document.getElementById(`tab-${t}`).classList.remove('bg-emerald-600');
@@ -784,8 +703,6 @@
             renderTransactionsTable();
         } else if(tab === 'rooms') {
             renderRooms();
-        } else if(tab === 'inventory') {
-            renderInventoryTable();
         }
     }
 
@@ -793,25 +710,11 @@
     function renderCategories() {
         const categories = ['All', ...categoriesList];
         const container = document.getElementById('category-filters');
-        
-        container.innerHTML = categories.map(c => {
-            const isSelected = selectedCategory === c;
-            const style = getCatStyle(c);
-            
-            if (c === 'All') {
-                return `
-                    <button onclick="filterCategory('All')" class="cat-filter-btn px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 border ${isSelected ? 'bg-emerald-600 border-emerald-500 text-white shadow-lg shadow-emerald-600/20' : 'bg-slate-900 border-slate-800 text-slate-400 hover:bg-slate-800'}">
-                        <i class="fa-solid fa-list-ul"></i> Všetko
-                    </button>
-                `;
-            }
-
-            return `
-                <button onclick="filterCategory('${c}')" class="cat-filter-btn px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 border ${isSelected ? `${style.bg} ${style.border}${style.text} ring-2 ring-emerald-500/40` : 'bg-slate-900/80 border-slate-800/80 text-slate-400 hover:bg-slate-800'}">
-                    <i class="fa-solid ${style.icon}"></i> ${c}
-                </button>
-            `;
-        }).join('');
+        container.innerHTML = categories.map(c => `
+            <button onclick="filterCategory('${c}')" class="px-3.5 py-1.5 text-xs rounded-xl border ${selectedCategory === c ? 'bg-emerald-600 text-white border-emerald-500' : 'bg-slate-950 border-slate-800 text-slate-400 hover:bg-slate-800'} font-bold transition">
+                ${c === 'All' ? 'Všetko' : c}
+            </button>
+        `).join('');
 
         const select = document.getElementById('prod-cat-select');
         select.innerHTML = categoriesList.map(c => `<option value="${c}">${c}</option>`).join('');
@@ -863,42 +766,51 @@
         }
     }
 
-    // --- PRODUCTS DISPLAY (BEZ CIEN NA DLAŽDICE) ---
+    // --- PRODUCTS DISPLAY & DARČEKY LOGIC ---
     function renderProducts() {
         const grid = document.getElementById('products-grid');
         const filtered = selectedCategory === 'All' ? products : products.filter(p => p.category === selectedCategory);
 
-        if (filtered.length === 0) {
-            grid.innerHTML = `<div class="col-span-full text-center py-12 text-slate-500 font-semibold text-sm">Žiadne produkty v tejto kategórii</div>`;
-            return;
-        }
+        const currentPoints = activeCustomerLoyalty ? activeCustomerLoyalty.points : 0;
 
         grid.innerHTML = filtered.map(p => {
-            const style = getCatStyle(p.category);
+            const isGift = (p.category === 'Darčeky');
+            const requiredPoints = Math.round(p.price);
+            const cannotAfford = isGift && (!activeCustomerLoyalty || currentPoints < requiredPoints);
+
+            if (isGift) {
+                return `
+                    <div ${cannotAfford ? '' : `onclick="addToCart('${p.id}')"`} 
+                         class="bg-slate-950/80 border ${cannotAfford ? 'border-slate-850 opacity-40 grayscale cursor-not-allowed' : 'border-amber-500/30 hover:border-amber-500/70 cursor-pointer'} rounded-2xl p-4 transition flex flex-col justify-between shadow-xl group relative overflow-hidden">
+                        <div>
+                            <div class="flex justify-between items-start">
+                                <div class="font-bold text-slate-100 text-base mb-1 ${cannotAfford ? '' : 'group-hover:text-amber-400'} transition">${p.name}</div>
+                                <span class="text-[10px] bg-amber-500/20 text-amber-400 font-bold px-1.5 py-0.5 rounded border border-amber-500/30">DARČEK</span>
+                            </div>
+                            <div class="text-xs text-slate-400">Sklad: <span class="${p.stock <= 10 ? 'text-rose-400 font-bold' : 'text-slate-300'}">${p.stock} ${p.unit}</span></div>
+                        </div>
+                        <div class="mt-4 flex justify-between items-center">
+                            <span class="text-amber-400 font-black text-lg flex items-center gap-1">
+                                <i class="fa-solid fa-gift text-sm"></i> ${requiredPoints} b
+                            </span>
+                            <span class="text-xs ${cannotAfford ? 'bg-slate-800 text-slate-500' : 'bg-amber-500/10 text-amber-400 border border-amber-500/20 group-hover:bg-amber-500 group-hover:text-slate-950'} p-2 rounded-xl transition font-bold">
+                                ${cannotAfford ? '<i class="fa-solid fa-lock"></i>' : '<i class="fa-solid fa-plus"></i>'}
+                            </span>
+                        </div>
+                    </div>
+                `;
+            }
+
             return `
-                <div onclick="addToCart('${p.id}')" class="product-card border border-slate-800/80 rounded-2xl p-3 cursor-pointer flex flex-col justify-between shadow-xl relative overflow-hidden group">
+                <div onclick="addToCart('${p.id}')" class="bg-slate-950/80 border border-slate-800 hover:border-emerald-500/50 rounded-2xl p-4 cursor-pointer transition flex flex-col justify-between shadow-xl group">
                     <div>
-                        <div class="flex items-center justify-between mb-2">
-                            <span class="text-[10px] uppercase font-extrabold px-2 py-0.5 rounded-md ${style.bg} ${style.text} ${style.border} border tracking-wider">
-                                ${p.category}
-                            </span>
-                            <span class="text-[10px] font-mono ${p.stock <= 10 ? 'text-rose-400 font-bold' : 'text-slate-500'}">
-                                ${p.stock} ${p.unit}
-                            </span>
-                        </div>
-
-                        <div class="product-title font-bold text-slate-100 text-sm mb-1 line-clamp-2 leading-snug group-hover:text-emerald-400 transition">
-                            ${p.name}
-                        </div>
+                        <div class="font-bold text-slate-100 text-base mb-1 group-hover:text-emerald-400 transition">${p.name}</div>
+                        <div class="text-xs text-slate-400">Sklad: <span class="${p.stock <= 10 ? 'text-rose-400 font-bold' : 'text-slate-300'}">${p.stock} ${p.unit}</span></div>
                     </div>
-
-                    <div class="mt-2 flex justify-end items-center pt-2 border-t border-slate-800/50">
-                        <span class="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center justify-center text-xs group-hover:bg-emerald-600 group-hover:text-white transition">
-                            <i class="fa-solid fa-plus text-sm"></i>
-                        </span>
+                    <div class="mt-4 flex justify-between items-center">
+                        <span class="text-emerald-400 font-black text-lg">${parseFloat(p.price).toFixed(2)} €</span>
+                        <span class="text-xs bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 p-2 rounded-xl group-hover:bg-emerald-600 group-hover:text-white transition"><i class="fa-solid fa-plus"></i></span>
                     </div>
-
-                    <div class="absolute bottom-0 left-0 right-0 h-1.5 ${style.bar} opacity-90 group-hover:opacity-100 transition"></div>
                 </div>
             `;
         }).join('');
@@ -932,12 +844,11 @@
             name: name,
             price: price,
             unit: 'ks',
-            stock: 999,
-            category: 'Rôzne'
+            stock: 999
         };
 
         if(!room.cart) room.cart = [];
-        room.cart.push({ product: customItemProduct, qty: 1, sentQty: 0 });
+        room.cart.push({ product: customItemProduct, qty: 1 });
 
         db.collection('rooms').doc(room.id).update({ cart: room.cart });
         closeCustomItemModal();
@@ -947,7 +858,7 @@
     function getCurrentRoom() {
         let room = rooms.find(r => r.id === activeRoomId);
         if(!room) {
-            room = rooms[0] || { id: 'main', name: 'Hlavná', cart: [], customerCardId: null };
+            room = rooms[0] || { id: 'main', name: 'Hlavná', cart: [] };
             activeRoomId = room.id;
         }
         if(!room.cart) room.cart = [];
@@ -963,6 +874,48 @@
             return;
         }
 
+        // AK JE TO DARČEK: Priamy odpočet bodov pri pridaní do košíka
+        if (product.category === 'Darčeky') {
+            if (!activeCustomerLoyalty) {
+                alert("Vyberte prosím najprv vernostnú kartu zákazníka!");
+                return;
+            }
+
+            const pointsCost = Math.round(product.price);
+            if (activeCustomerLoyalty.points < pointsCost) {
+                alert("Zákazník nemá dostatok bodov pre tento darček!");
+                return;
+            }
+
+            // Odčítanie bodov okamžite z karty
+            const newPoints = activeCustomerLoyalty.points - pointsCost;
+            db.collection('cards').doc(activeCustomerLoyalty.id).update({ points: newPoints });
+
+            // Darček sa do košíka pridá ako nulová položka (darček)
+            const room = getCurrentRoom();
+            const giftProduct = {
+                ...product,
+                price: 0, 
+                isGiftItem: true,
+                pointsCost: pointsCost
+            };
+
+            const existing = room.cart.find(item => item.product.id === productId);
+            if (existing) {
+                if (existing.qty + 1 > product.stock) {
+                    alert("Nemožno pridať viac, než je na sklade.");
+                    return;
+                }
+                existing.qty += 1;
+            } else {
+                room.cart.push({ product: giftProduct, qty: 1 });
+            }
+
+            db.collection('rooms').doc(room.id).update({ cart: room.cart });
+            alert(`Darček "${product.name}" bol pridaný! Z účtu bolo strhnuté: ${pointsCost} bodov.`);
+            return;
+        }
+
         const room = getCurrentRoom();
         if(!room.cart) room.cart = [];
         
@@ -974,7 +927,7 @@
             }
             existing.qty += 1;
         } else {
-            room.cart.push({ product: product, qty: 1, sentQty: 0 });
+            room.cart.push({ product: product, qty: 1 });
         }
 
         db.collection('rooms').doc(room.id).update({ cart: room.cart });
@@ -985,16 +938,28 @@
         const item = room.cart.find(i => i.product.id === productId);
         if (!item) return;
 
+        if (item.product.isGiftItem && delta > 0) {
+            // Ak zvyšujeme množstvo darčeka, skontrolujeme a strhneme body
+            const pointsCost = item.product.pointsCost;
+            if (!activeCustomerLoyalty || activeCustomerLoyalty.points < pointsCost) {
+                alert("Zákazník nemá dostatok bodov pre ďalší tento darček!");
+                return;
+            }
+            const newPoints = activeCustomerLoyalty.points - pointsCost;
+            db.collection('cards').doc(activeCustomerLoyalty.id).update({ points: newPoints });
+        } else if (item.product.isGiftItem && delta < 0) {
+            // Ak znižujeme darček, body vrátime
+            const pointsCost = item.product.pointsCost;
+            if (activeCustomerLoyalty) {
+                const newPoints = activeCustomerLoyalty.points + pointsCost;
+                db.collection('cards').doc(activeCustomerLoyalty.id).update({ points: newPoints });
+            }
+        }
+
         item.qty += delta;
         if (item.qty > item.product.stock) {
             alert("Dosiahnutý limit skladu.");
             item.qty = item.product.stock;
-        }
-
-        if (item.qty < item.sentQty) {
-            alert("Nemožno znížiť počet pod už odoslané množstvo na KDS.");
-            item.qty = item.sentQty;
-            return;
         }
 
         if (item.qty <= 0) {
@@ -1006,21 +971,30 @@
 
     function clearCart() {
         const room = getCurrentRoom();
-        db.collection('rooms').doc(room.id).update({ cart: [], customerCardId: null });
+        
+        // Ak sú v košíku darčeky, pri zrušení košíka vrátime body
+        if (room.cart && activeCustomerLoyalty) {
+            let pointsToReturn = 0;
+            room.cart.forEach(item => {
+                if (item.product.isGiftItem) {
+                    pointsToReturn += item.product.pointsCost * item.qty;
+                }
+            });
+            if (pointsToReturn > 0) {
+                const newPoints = activeCustomerLoyalty.points + pointsToReturn;
+                db.collection('cards').doc(activeCustomerLoyalty.id).update({ points: newPoints });
+            }
+        }
+
+        db.collection('rooms').doc(room.id).update({ cart: [] });
     }
 
     function renderCart() {
         const room = getCurrentRoom();
         const container = document.getElementById('order-items');
         
-        // Nastavenie zapamätanej karty na daný účet
-        const cardSelect = document.getElementById('cart-customer-select');
-        if(cardSelect) {
-            cardSelect.value = room.customerCardId || "";
-        }
-
         if (!room.cart || room.cart.length === 0) {
-            container.innerHTML = `<div class="text-center text-slate-500 mt-10 text-xs font-medium">Účet je zatiaľ prázdny</div>`;
+            container.innerHTML = `<div class="text-center text-slate-500 mt-10">Účet je zatiaľ prázdny</div>`;
             document.getElementById('subtotal-val').innerText = '0.00 €';
             document.getElementById('discount-val').innerText = '0.00 €';
             document.getElementById('total-val').innerText = '0.00 €';
@@ -1031,35 +1005,29 @@
         container.innerHTML = room.cart.map(item => {
             const itemTotal = item.product.price * item.qty;
             subtotal += itemTotal;
-            const style = getCatStyle(item.product.category);
 
-            const isFullySent = item.sentQty === item.qty;
-            const isPartiallySent = item.sentQty > 0 && item.sentQty < item.qty;
+            const isGift = item.product.isGiftItem;
 
             return `
-                <div class="flex justify-between items-center bg-slate-950/80 border border-slate-800/80 p-2.5 rounded-xl text-xs relative overflow-hidden ${isFullySent ? 'opacity-70' : ''}">
-                    <div class="w-1 absolute left-0 top-0 bottom-0 ${style.bar}"></div>
-                    <div class="flex-1 pl-2">
-                        <div class="font-bold text-slate-100 flex items-center gap-1.5">
+                <div class="flex justify-between items-center bg-slate-950/60 border border-slate-800 p-3 rounded-xl text-sm">
+                    <div class="flex-1">
+                        <div class="font-bold text-slate-200 flex items-center gap-1.5">
                             ${item.product.name}
-                            ${isFullySent ? `<span class="text-[9px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-1.5 py-0.2 rounded font-extrabold">POSLANÉ</span>` : ''}
-                            ${isPartiallySent ? `<span class="text-[9px] bg-amber-500/20 text-amber-400 border border-amber-500/30 px-1.5 py-0.2 rounded font-extrabold">POSLANÉ (${item.sentQty}x)</span>` : ''}
-                            ${!item.sentQty ? `<span class="text-[9px] bg-amber-500/10 text-amber-300 border border-amber-500/20 px-1.5 py-0.2 rounded font-extrabold">NOVÉ</span>` : ''}
+                            ${isGift ? '<span class="text-[10px] bg-amber-500/20 text-amber-400 px-1.5 py-0.2 rounded font-bold">DARČEK</span>' : ''}
                         </div>
-                        <div class="text-[10px] text-slate-400">${parseFloat(item.product.price).toFixed(2)} € / ${item.product.unit}</div>
+                        <div class="text-xs text-slate-400">${isGift ? `${item.product.pointsCost} b / ks` : `${parseFloat(item.product.price).toFixed(2)} € / ${item.product.unit}`}</div>
                     </div>
-                    <div class="flex items-center gap-1.5 px-2">
-                        <button onclick="updateCartQty('${item.product.id}', -1)" class="w-7 h-7 bg-slate-800 hover:bg-slate-700 rounded-lg font-bold text-slate-200 transition text-sm flex items-center justify-center">-</button>
-                        <span class="font-black text-slate-100 w-5 text-center text-xs">${item.qty}</span>
-                        <button onclick="updateCartQty('${item.product.id}', 1)" class="w-7 h-7 bg-slate-800 hover:bg-slate-700 rounded-lg font-bold text-slate-200 transition text-sm flex items-center justify-center">+</button>
+                    <div class="flex items-center gap-2">
+                        <button onclick="updateCartQty('${item.product.id}', -1)" class="w-7 h-7 bg-slate-800 hover:bg-slate-700 rounded-lg font-bold text-xs text-slate-200">-</button>
+                        <span class="font-bold text-slate-100 w-6 text-center">${item.qty}</span>
+                        <button onclick="updateCartQty('${item.product.id}', 1)" class="w-7 h-7 bg-slate-800 hover:bg-slate-700 rounded-lg font-bold text-xs text-slate-200">+</button>
                     </div>
-                    <div class="w-16 text-right font-black text-emerald-400 text-sm">${itemTotal.toFixed(2)} €</div>
+                    <div class="w-16 text-right font-black ${isGift ? 'text-amber-400' : 'text-emerald-400'}">${isGift ? '0.00 €' : `${itemTotal.toFixed(2)} €`}</div>
                 </div>
             `;
         }).join('');
 
-        const card = loyaltyCards.find(c => c.id == room.customerCardId);
-        let discountPct = card ? card.discount : 0;
+        let discountPct = activeCustomerLoyalty ? activeCustomerLoyalty.discount : 0;
         let discountAmount = (subtotal * discountPct) / 100;
         let total = subtotal - discountAmount;
 
@@ -1070,11 +1038,23 @@
 
     function applyCustomerLoyalty() {
         const cardId = document.getElementById('cart-customer-select').value;
-        const room = getCurrentRoom();
-        db.collection('rooms').doc(room.id).update({ customerCardId: cardId || null });
+        activeCustomerLoyalty = loyaltyCards.find(c => c.id == cardId) || null;
+        updateCustomerBadge();
+        renderProducts();
+        renderCart();
     }
 
-    // --- KDS ODOSLANIE (IBA NOVÉ POLOŽKY) ---
+    function updateCustomerBadge() {
+        const badge = document.getElementById('active-user-points-badge');
+        if (activeCustomerLoyalty) {
+            badge.innerText = `${activeCustomerLoyalty.points} b`;
+            badge.classList.remove('hidden');
+        } else {
+            badge.classList.add('hidden');
+        }
+    }
+
+    // --- KDS ODOSLANIE S PRIPÍSANÍM BODIČKOV (1 € = 1 bod) ---
     function sendToKitchen() {
         const room = getCurrentRoom();
         if (!room.cart || room.cart.length === 0) {
@@ -1082,53 +1062,49 @@
             return;
         }
 
-        // Filtrujeme iba tie položky, ktoré ešte neboli plne odoslané
-        let newItemsToSend = [];
+        const total = parseFloat(document.getElementById('total-val').innerText);
+        const now = new Date();
+
+        // 1. Zníženie zo skladu
         room.cart.forEach(item => {
-            const unsentQty = item.qty - (item.sentQty || 0);
-            if (unsentQty > 0) {
-                newItemsToSend.push({
-                    id: item.product.id,
-                    name: item.product.name,
-                    qty: unsentQty,
-                    unit: item.product.unit,
-                    price: item.product.price
-                });
-                item.sentQty = item.qty; // Označíme všetky za odoslané
-            }
-        });
-
-        if (newItemsToSend.length === 0) {
-            alert("Všetky položky na tomto účte už boli odoslané na KDS!");
-            return;
-        }
-
-        // Stiahnutie zo skladu iba nových položiek
-        newItemsToSend.forEach(item => {
-            const p = products.find(prod => prod.id === item.id);
+            const p = products.find(prod => prod.id === item.product.id);
             if (p) {
                 const newStock = p.stock - item.qty;
                 db.collection('products').doc(p.id).update({ stock: newStock });
             }
         });
 
-        const newItemsTotal = newItemsToSend.reduce((acc, i) => acc + (i.price * i.qty), 0);
-        const now = new Date();
+        // 2. Ak je vybraný zákazník, hneď zaznačíme body za nákup (1 € = 1 bod)
+        if (activeCustomerLoyalty && total > 0) {
+            const pointsEarned = Math.floor(total);
+            const updatedPoints = activeCustomerLoyalty.points + pointsEarned;
+            db.collection('cards').doc(activeCustomerLoyalty.id).update({ points: updatedPoints });
+        }
 
         const kdsOrder = {
             timestamp: now.toISOString(),
             timeStr: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
             hour: now.getHours(),
             room: room.name,
-            total: newItemsTotal,
+            total: total,
             includeInAnalytics: true,
-            items: newItemsToSend
+            customer: activeCustomerLoyalty ? activeCustomerLoyalty.name : 'Anonym',
+            items: room.cart.map(i => ({
+                id: i.product.id,
+                name: i.product.name,
+                qty: i.qty,
+                unit: i.product.unit,
+                price: i.product.price
+            }))
         };
 
         db.collection('transactions').add(kdsOrder);
-        db.collection('rooms').doc(room.id).update({ cart: room.cart });
+        
+        let pointsMsg = (activeCustomerLoyalty && total > 0) ? `\nZákazník získal +${Math.floor(total)} bodov za nákup!` : '';
+        alert(`Objednávka bola odoslaná na KDS pre ${room.name}!${pointsMsg}`);
 
-        alert(`Na KDS boli odoslané IBA NOVÉ položky pre ${room.name}!`);
+        // Vynulovanie košíka pre danú izbu po odoslaní
+        db.collection('rooms').doc(room.id).update({ cart: [] });
     }
 
     function renderTransactionsTable() {
@@ -1162,42 +1138,6 @@
         if (t) {
             db.collection('transactions').doc(id).update({ includeInAnalytics: !t.includeInAnalytics });
         }
-    }
-
-    // --- INVENTÁR (NOVÉ) ---
-    function renderInventoryTable() {
-        const tbody = document.getElementById('inventory-table-body');
-        tbody.innerHTML = products.map(p => {
-            const style = getCatStyle(p.category);
-            return `
-                <tr class="hover:bg-slate-950/40">
-                    <td class="p-4 font-bold text-slate-100">${p.name}</td>
-                    <td class="p-4"><span class="text-xs font-bold px-2.5 py-1 rounded-lg ${style.bg} ${style.text} ${style.border} border">${p.category}</span></td>
-                    <td class="p-4 font-bold text-slate-300">${p.stock} ${p.unit}</td>
-                    <td class="p-4">
-                        <input type="number" id="inv-input-${p.id}" value="${p.stock}" class="w-28 p-2 bg-slate-950 border border-slate-700 rounded-xl text-slate-100 font-bold text-sm focus:outline-none focus:border-emerald-500">
-                        <span class="text-xs text-slate-400 ml-1">${p.unit}</span>
-                    </td>
-                    <td class="p-4 text-right">
-                        <button onclick="saveInventoryItem('${p.id}')" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-3.5 py-2 rounded-xl transition shadow-lg shadow-emerald-600/20">
-                            Prepočítať / Uložiť
-                        </button>
-                    </td>
-                </tr>
-            `;
-        }).join('');
-    }
-
-    function saveInventoryItem(productId) {
-        const val = parseInt(document.getElementById(`inv-input-${productId}`).value);
-        if (isNaN(val) || val < 0) {
-            alert("Zadajte platné množstvo!");
-            return;
-        }
-
-        db.collection('products').doc(productId).update({ stock: val }).then(() => {
-            alert("Inventárny stav bol úspešne aktualizovaný!");
-        });
     }
 
     // --- PAYMENT MODAL & FLOW ---
@@ -1267,19 +1207,18 @@
 
     function finalizeTransaction(method) {
         const total = parseFloat(document.getElementById('total-val').innerText);
-        const room = getCurrentRoom();
-        const card = loyaltyCards.find(c => c.id == room.customerCardId);
 
-        if (card) {
+        if (activeCustomerLoyalty && total > 0) {
             const pointsEarned = Math.floor(total);
-            const newPoints = card.points + pointsEarned;
-            db.collection('cards').doc(card.id).update({ points: newPoints });
-            alert(`Platba ${total.toFixed(2)} € bola uhradená (${method}). Zákazník ${card.name} získal +${pointsEarned} bodov!`);
+            const newPoints = activeCustomerLoyalty.points + pointsEarned;
+            db.collection('cards').doc(activeCustomerLoyalty.id).update({ points: newPoints });
+            alert(`Platba ${total.toFixed(2)} € bola uhradená (${method}). Zákazník získal +${pointsEarned} bodov!`);
         } else {
             alert(`Platba ${total.toFixed(2)} € bola úspešne vyrovnaná (${method}).`);
         }
 
-        clearCart();
+        const room = getCurrentRoom();
+        db.collection('rooms').doc(room.id).update({ cart: [] });
         closePaymentModal();
     }
 
@@ -1380,13 +1319,13 @@
     function saveProduct() {
         const id = document.getElementById('product-edit-id').value;
         const name = document.getElementById('prod-name-input').value.trim();
-        const category = document.getElementById('prod-cat-select').value || 'Rôzne';
+        const category = document.getElementById('prod-cat-select').value || 'Všeobecné';
         const price = parseFloat(document.getElementById('prod-price-input').value) || 0;
         const stock = parseInt(document.getElementById('prod-stock-input').value) || 0;
         const unit = document.getElementById('prod-unit-input').value;
 
-        if (!name || price <= 0) {
-            alert("Zadajte platný názov a cenu produktu!");
+        if (!name || price < 0) {
+            alert("Zadajte platný názov a cenu/body produktu!");
             return;
         }
 
@@ -1438,7 +1377,7 @@
 
     function selectRoom(id, name) {
         activeRoomId = id;
-        document.getElementById('active-room-display').innerText = `Stôl: ${name}`;
+        document.getElementById('active-room-display').innerText = `Stôl / Izba: ${name}`;
         renderCart();
         switchTab('pos');
     }
@@ -1463,7 +1402,7 @@
         if (id) {
             db.collection('rooms').doc(id).update({ name: name });
         } else {
-            db.collection('rooms').add({ name: name, cart: [], customerCardId: null });
+            db.collection('rooms').add({ name: name, cart: [] });
         }
 
         closeRoomModal();
@@ -1499,15 +1438,16 @@
                 </td>
             </tr>
         `).join('');
+
+        renderLoyaltyOptions();
     }
 
     function renderLoyaltyOptions() {
         const select = document.getElementById('cart-customer-select');
-        if(select) {
-            select.innerHTML = `<option value="">-- Bez karty --</option>` + loyaltyCards.map(c => `
-                <option value="${c.id}">${c.name} (${c.code}) - Zľava ${c.discount}%</option>
-            `).join('');
-        }
+        const selectedValue = select.value;
+        select.innerHTML = `<option value="">-- Bez karty --</option>` + loyaltyCards.map(c => `
+            <option value="${c.id}" ${selectedValue == c.id ? 'selected' : ''}>${c.name} (${c.code}) - Body: ${c.points} b</option>
+        `).join('');
     }
 
     function openCardModal(cardId = null) {
@@ -1563,12 +1503,12 @@
     function renderStock() {
         const tbody = document.getElementById('stock-table-body');
         tbody.innerHTML = products.map(p => {
-            const style = getCatStyle(p.category);
+            const isGift = p.category === 'Darčeky';
             return `
                 <tr class="hover:bg-slate-950/40">
                     <td class="p-4 font-bold text-slate-100">${p.name}</td>
-                    <td class="p-4"><span class="text-xs font-bold px-2.5 py-1 rounded-lg ${style.bg} ${style.text} ${style.border} border">${p.category}</span></td>
-                    <td class="p-4 font-bold text-emerald-400">${parseFloat(p.price).toFixed(2)} €</td>
+                    <td class="p-4 text-slate-400">${p.category}</td>
+                    <td class="p-4 font-bold ${isGift ? 'text-amber-400' : 'text-emerald-400'}">${isGift ? `${Math.round(p.price)} b` : `${parseFloat(p.price).toFixed(2)} €`}</td>
                     <td class="p-4 font-bold ${p.stock <= 10 ? 'text-rose-400' : 'text-slate-200'}">${p.stock} ${p.unit}</td>
                     <td class="p-4 text-right space-x-2">
                         <button onclick="addStock('${p.id}')" class="text-xs bg-emerald-500/10 border border-emerald-500/20 hover:bg-emerald-600 text-emerald-400 hover:text-white px-3 py-1.5 rounded-xl font-bold transition"><i class="fa-solid fa-plus mr-1"></i> +10</button>
