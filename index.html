@@ -28,7 +28,6 @@
         }
         .splash-logo { animation: pulseGlow 2s infinite ease-in-out; }
         
-        /* Základná karta produktu */
         .product-card {
             background: linear-gradient(145deg, rgba(15, 23, 42, 0.85), rgba(10, 15, 28, 0.95));
             backdrop-filter: blur(8px);
@@ -38,22 +37,19 @@
             transform: scale(0.97);
         }
 
-        /* TABLETOVÝ MÓD (NATIVELY ACTIVE) */
+        /* TABLETOVÝ MÓD */
         body.tablet-mode .products-grid-layout {
-            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)) !important;
+            grid-template-cols: repeat(auto-fill, minmax(180px, 1fr)) !important;
             gap: 1.25rem !important;
         }
         body.tablet-mode .product-card {
             padding: 1.25rem !important;
-            min-height: 120px !important;
+            min-height: 110px !important;
         }
         body.tablet-mode .product-title {
-            font-size: 1.05rem !important;
+            font-size: 1.1rem !important;
             line-height: 1.3 !important;
             margin-bottom: 0.5rem !important;
-        }
-        body.tablet-mode .product-price {
-            font-size: 1.25rem !important;
         }
         body.tablet-mode .cat-filter-btn {
             padding: 0.75rem 1.25rem !important;
@@ -77,7 +73,6 @@
         appId: "1:597035606534:web:824ebae8ea54a14c4f9987"
     };
 
-    // Inicializácia Firebase
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 </script>
@@ -145,15 +140,14 @@
             <nav class="flex space-x-1.5 overflow-x-auto py-1">
                 <button onclick="switchTab('pos')" id="tab-pos" class="px-3.5 py-2 rounded-xl font-bold bg-emerald-600 hover:bg-emerald-500 transition text-xs flex items-center gap-1.5 shadow-lg shadow-emerald-600/20 whitespace-nowrap"><i class="fa-solid fa-calculator"></i>Pokladňa</button>
                 <button onclick="switchTab('transactions')" id="tab-transactions" class="px-3.5 py-2 rounded-xl font-semibold hover:bg-slate-800 text-slate-300 transition text-xs flex items-center gap-1.5 whitespace-nowrap"><i class="fa-solid fa-receipt"></i>KDS</button>
-                <button onclick="switchTab('inventory')" id="tab-inventory" class="px-3.5 py-2 rounded-xl font-semibold hover:bg-slate-800 text-slate-300 transition text-xs flex items-center gap-1.5 whitespace-nowrap"><i class="fa-solid fa-warehouse"></i>Inventár</button>
                 <button onclick="switchTab('analytics')" id="tab-analytics" class="px-3.5 py-2 rounded-xl font-semibold hover:bg-slate-800 text-slate-300 transition text-xs flex items-center gap-1.5 whitespace-nowrap"><i class="fa-solid fa-chart-pie"></i>Grafy</button>
                 <button onclick="switchTab('rooms')" id="tab-rooms" class="px-3.5 py-2 rounded-xl font-semibold hover:bg-slate-800 text-slate-300 transition text-xs flex items-center gap-1.5 whitespace-nowrap"><i class="fa-solid fa-hotel"></i>Stoly</button>
                 <button onclick="switchTab('cards')" id="tab-cards" class="px-3.5 py-2 rounded-xl font-semibold hover:bg-slate-800 text-slate-300 transition text-xs flex items-center gap-1.5 whitespace-nowrap"><i class="fa-solid fa-id-card"></i>Karty</button>
+                <button onclick="switchTab('inventory')" id="tab-inventory" class="px-3.5 py-2 rounded-xl font-semibold hover:bg-slate-800 text-slate-300 transition text-xs flex items-center gap-1.5 whitespace-nowrap"><i class="fa-solid fa-clipboard-check"></i>Inventár</button>
                 <button onclick="switchTab('stock')" id="tab-stock" class="px-3.5 py-2 rounded-xl font-semibold hover:bg-slate-800 text-slate-300 transition text-xs flex items-center gap-1.5 whitespace-nowrap"><i class="fa-solid fa-boxes-stacked"></i>Sklad</button>
             </nav>
 
             <div class="flex items-center gap-2 shrink-0">
-                <!-- PREPÍNAČ TABLETOVÉHO MÓDU -->
                 <button onclick="toggleTabletMode()" id="tablet-toggle-btn" class="bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-400 border border-indigo-500/30 px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5">
                     <i class="fa-solid fa-tablet-screen-button"></i> <span class="hidden md:inline">Tablet Mod:</span> <span id="tablet-status-text" class="text-emerald-400 font-extrabold">ZAP</span>
                 </button>
@@ -183,7 +177,7 @@
                     <!-- Category Bar -->
                     <div id="category-filters" class="flex gap-2 mb-3.5 overflow-x-auto pb-1 shrink-0"></div>
 
-                    <!-- Products Grid -->
+                    <!-- Products Grid (BEZ CIEN MOŽNOSŤ KLIKANIA) -->
                     <div id="products-grid" class="products-grid-layout grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 overflow-y-auto flex-1 pr-1"></div>
                 </div>
 
@@ -235,18 +229,6 @@
                         </button>
                     </div>
                 </div>
-            </div>
-
-            <!-- TAB: INVENTÁR -->
-            <div id="view-inventory" class="h-full hidden flex-col bg-slate-900/60 border border-slate-800 rounded-2xl shadow-2xl p-6 overflow-y-auto">
-                <div class="flex justify-between items-center mb-6">
-                    <div>
-                        <h2 class="text-xl font-bold text-slate-100 flex items-center gap-2"><i class="fa-solid fa-warehouse text-emerald-400"></i> Správa Inventára a Zásob</h2>
-                        <p class="text-sm text-slate-400">Rýchla úprava skladových zásobení produktov v reálnom čase.</p>
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="inventory-grid"></div>
             </div>
 
             <!-- TAB: TRANSAKCIE (KDS) -->
@@ -349,6 +331,28 @@
                         </tr>
                     </thead>
                     <tbody id="loyalty-cards-table-body" class="divide-y divide-slate-800 text-sm"></tbody>
+                </table>
+            </div>
+
+            <!-- TAB: INVENTÁR (NOVÉ) -->
+            <div id="view-inventory" class="h-full hidden flex-col bg-slate-900/60 border border-slate-800 rounded-2xl shadow-2xl p-6 overflow-y-auto">
+                <div class="flex justify-between items-center mb-6">
+                    <div>
+                        <h2 class="text-xl font-bold text-slate-100 flex items-center gap-2"><i class="fa-solid fa-clipboard-check text-emerald-400"></i> Inventúra & Stav Skladu</h2>
+                        <p class="text-sm text-slate-400">Zadajte skutočné fyzické množstvo produktov pre rýchlu úpravu inventára.</p>
+                    </div>
+                </div>
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="border-b border-slate-800 bg-slate-950/60 text-xs font-semibold text-slate-400 uppercase">
+                            <th class="p-4">Produkt</th>
+                            <th class="p-4">Kategória</th>
+                            <th class="p-4">Súčasný Stav</th>
+                            <th class="p-4">Fyzicky Zistené Množstvo</th>
+                            <th class="p-4 text-right">Uložiť Inventúru</th>
+                        </tr>
+                    </thead>
+                    <tbody id="inventory-table-body" class="divide-y divide-slate-800 text-sm"></tbody>
                 </table>
             </div>
 
@@ -591,7 +595,7 @@
     // --- REALTIME STATE ---
     let categoriesList = ["Káva", "Nealko napoje", "Voda", "Alkohol", "Víno", "Cocktaily", "Rôzne"];
     let products = [];
-    let rooms = [{ id: 'main', name: 'Hlavná', cart: [], cardId: null }];
+    let rooms = [{ id: 'main', name: 'Hlavná', cart: [], customerCardId: null }];
     let loyaltyCards = [];
     let kdsTransactions = [];
 
@@ -616,7 +620,6 @@
         return categoryStyles[cat] || { bg: "bg-emerald-500/10", border: "border-emerald-500/30", text: "text-emerald-400", bar: "bg-emerald-500", icon: "fa-utensils" };
     }
 
-    // TOGGLE TABLETOVÉHO MÓDU
     function toggleTabletMode() {
         document.body.classList.toggle('tablet-mode');
         const isTablet = document.body.classList.contains('tablet-mode');
@@ -624,7 +627,6 @@
         document.getElementById('tablet-status-text').className = isTablet ? 'text-emerald-400 font-extrabold' : 'text-slate-500 font-bold';
     }
 
-    // --- INITIALIZATION ---
     window.onload = function() {
         runSplash();
         initRealtimeListeners();
@@ -669,7 +671,7 @@
             renderCategories();
             renderProducts();
             renderStock();
-            renderInventory();
+            renderInventoryTable();
         });
 
         db.collection('rooms').onSnapshot(snapshot => {
@@ -678,7 +680,7 @@
                 rooms.push({ id: doc.id, ...doc.data() });
             });
             if(rooms.length === 0) {
-                db.collection('rooms').doc('main').set({ name: 'Hlavná', cart: [], cardId: null });
+                db.collection('rooms').doc('main').set({ name: 'Hlavná', cart: [], customerCardId: null });
             } else {
                 renderRooms();
                 renderCart();
@@ -700,6 +702,7 @@
                 loyaltyCards.push({ id: doc.id, ...doc.data() });
             });
             renderLoyaltyTable();
+            renderLoyaltyOptions();
             renderCart();
         });
     }
@@ -743,7 +746,7 @@
             renderLoyaltyOptions();
             renderRooms();
             renderStock();
-            renderInventory();
+            renderInventoryTable();
             renderLoyaltyTable();
             renderTransactionsTable();
             renderCart();
@@ -765,7 +768,7 @@
 
     // --- TAB NAVIGATION ---
     function switchTab(tab) {
-        ['pos', 'transactions', 'inventory', 'analytics', 'rooms', 'cards', 'stock'].forEach(t => {
+        ['pos', 'transactions', 'analytics', 'rooms', 'cards', 'inventory', 'stock'].forEach(t => {
             document.getElementById(`view-${t}`).classList.add('hidden');
             document.getElementById(`view-${t}`).classList.remove('flex');
             document.getElementById(`tab-${t}`).classList.remove('bg-emerald-600');
@@ -782,7 +785,7 @@
         } else if(tab === 'rooms') {
             renderRooms();
         } else if(tab === 'inventory') {
-            renderInventory();
+            renderInventoryTable();
         }
     }
 
@@ -804,7 +807,7 @@
             }
 
             return `
-                <button onclick="filterCategory('${c}')" class="cat-filter-btn px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 border ${isSelected ? `${style.bg} ${style.border} ${style.text} ring-2 ring-emerald-500/40` : 'bg-slate-900/80 border-slate-800/80 text-slate-400 hover:bg-slate-800'}">
+                <button onclick="filterCategory('${c}')" class="cat-filter-btn px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 border ${isSelected ? `${style.bg} ${style.border}${style.text} ring-2 ring-emerald-500/40` : 'bg-slate-900/80 border-slate-800/80 text-slate-400 hover:bg-slate-800'}">
                     <i class="fa-solid ${style.icon}"></i> ${c}
                 </button>
             `;
@@ -860,7 +863,7 @@
         }
     }
 
-    // --- PRODUCTS DISPLAY (TABLET-FRIENDLY) ---
+    // --- PRODUCTS DISPLAY (BEZ CIEN NA DLAŽDICE) ---
     function renderProducts() {
         const grid = document.getElementById('products-grid');
         const filtered = selectedCategory === 'All' ? products : products.filter(p => p.category === selectedCategory);
@@ -875,7 +878,6 @@
             return `
                 <div onclick="addToCart('${p.id}')" class="product-card border border-slate-800/80 rounded-2xl p-3 cursor-pointer flex flex-col justify-between shadow-xl relative overflow-hidden group">
                     <div>
-                        <!-- Category Badge & Stock -->
                         <div class="flex items-center justify-between mb-2">
                             <span class="text-[10px] uppercase font-extrabold px-2 py-0.5 rounded-md ${style.bg} ${style.text} ${style.border} border tracking-wider">
                                 ${p.category}
@@ -885,21 +887,17 @@
                             </span>
                         </div>
 
-                        <!-- Product Name -->
                         <div class="product-title font-bold text-slate-100 text-sm mb-1 line-clamp-2 leading-snug group-hover:text-emerald-400 transition">
                             ${p.name}
                         </div>
                     </div>
 
-                    <!-- Bottom Price Row -->
-                    <div class="mt-2 flex justify-between items-center pt-2 border-t border-slate-800/50">
-                        <span class="product-price text-emerald-400 font-black text-base">${parseFloat(p.price).toFixed(2)} €</span>
-                        <span class="w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center justify-center text-xs group-hover:bg-emerald-600 group-hover:text-white transition">
-                            <i class="fa-solid fa-plus"></i>
+                    <div class="mt-2 flex justify-end items-center pt-2 border-t border-slate-800/50">
+                        <span class="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center justify-center text-xs group-hover:bg-emerald-600 group-hover:text-white transition">
+                            <i class="fa-solid fa-plus text-sm"></i>
                         </span>
                     </div>
 
-                    <!-- Pásik dole -->
                     <div class="absolute bottom-0 left-0 right-0 h-1.5 ${style.bar} opacity-90 group-hover:opacity-100 transition"></div>
                 </div>
             `;
@@ -945,11 +943,11 @@
         closeCustomItemModal();
     }
 
-    // --- CART LOGIC PER ROOM (S PODPOROU POSLANÝCH POLOŽIEK) ---
+    // --- CART LOGIC PER ROOM ---
     function getCurrentRoom() {
         let room = rooms.find(r => r.id === activeRoomId);
         if(!room) {
-            room = rooms[0] || { id: 'main', name: 'Hlavná', cart: [], cardId: null };
+            room = rooms[0] || { id: 'main', name: 'Hlavná', cart: [], customerCardId: null };
             activeRoomId = room.id;
         }
         if(!room.cart) room.cart = [];
@@ -988,16 +986,15 @@
         if (!item) return;
 
         item.qty += delta;
-
-        if (item.qty < item.sentQty) {
-            alert("Nemožno znížiť množstvo pod hodnotu už odoslaných položiek na KDS!");
-            item.qty = item.sentQty;
-            return;
-        }
-
         if (item.qty > item.product.stock) {
             alert("Dosiahnutý limit skladu.");
             item.qty = item.product.stock;
+        }
+
+        if (item.qty < item.sentQty) {
+            alert("Nemožno znížiť počet pod už odoslané množstvo na KDS.");
+            item.qty = item.sentQty;
+            return;
         }
 
         if (item.qty <= 0) {
@@ -1009,21 +1006,19 @@
 
     function clearCart() {
         const room = getCurrentRoom();
-        if(confirm("Naozaj chcete vynulovať celý účet pre tento stôl?")) {
-            db.collection('rooms').doc(room.id).update({ cart: [], cardId: null });
-        }
+        db.collection('rooms').doc(room.id).update({ cart: [], customerCardId: null });
     }
 
     function renderCart() {
         const room = getCurrentRoom();
         const container = document.getElementById('order-items');
-
-        // Nastavenie uschovanej karty pre tento stôl
-        const cardSelect = document.getElementById('cart-customer-select');
-        if (cardSelect) {
-            cardSelect.value = room.cardId || "";
-        }
         
+        // Nastavenie zapamätanej karty na daný účet
+        const cardSelect = document.getElementById('cart-customer-select');
+        if(cardSelect) {
+            cardSelect.value = room.customerCardId || "";
+        }
+
         if (!room.cart || room.cart.length === 0) {
             container.innerHTML = `<div class="text-center text-slate-500 mt-10 text-xs font-medium">Účet je zatiaľ prázdny</div>`;
             document.getElementById('subtotal-val').innerText = '0.00 €';
@@ -1037,21 +1032,21 @@
             const itemTotal = item.product.price * item.qty;
             subtotal += itemTotal;
             const style = getCatStyle(item.product.category);
-            const sentQty = item.sentQty || 0;
-            const unsentQty = item.qty - sentQty;
+
+            const isFullySent = item.sentQty === item.qty;
+            const isPartiallySent = item.sentQty > 0 && item.sentQty < item.qty;
 
             return `
-                <div class="flex justify-between items-center bg-slate-950/80 border border-slate-800/80 p-2.5 rounded-xl text-xs relative overflow-hidden">
+                <div class="flex justify-between items-center bg-slate-950/80 border border-slate-800/80 p-2.5 rounded-xl text-xs relative overflow-hidden ${isFullySent ? 'opacity-70' : ''}">
                     <div class="w-1 absolute left-0 top-0 bottom-0 ${style.bar}"></div>
                     <div class="flex-1 pl-2">
                         <div class="font-bold text-slate-100 flex items-center gap-1.5">
                             ${item.product.name}
+                            ${isFullySent ? `<span class="text-[9px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-1.5 py-0.2 rounded font-extrabold">POSLANÉ</span>` : ''}
+                            ${isPartiallySent ? `<span class="text-[9px] bg-amber-500/20 text-amber-400 border border-amber-500/30 px-1.5 py-0.2 rounded font-extrabold">POSLANÉ (${item.sentQty}x)</span>` : ''}
+                            ${!item.sentQty ? `<span class="text-[9px] bg-amber-500/10 text-amber-300 border border-amber-500/20 px-1.5 py-0.2 rounded font-extrabold">NOVÉ</span>` : ''}
                         </div>
-                        <div class="flex items-center gap-2 mt-0.5">
-                            <span class="text-[10px] text-slate-400">${parseFloat(item.product.price).toFixed(2)} € / ${item.product.unit}</span>
-                            ${sentQty > 0 ? `<span class="text-[9px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-1.5 py-0.2 rounded font-bold"><i class="fa-solid fa-check text-[8px] mr-1"></i>${sentQty}x POSLANÉ</span>` : ''}
-                            ${unsentQty > 0 && sentQty > 0 ? `<span class="text-[9px] bg-amber-500/20 text-amber-400 border border-amber-500/30 px-1.5 py-0.2 rounded font-bold">+${unsentQty}x nové</span>` : ''}
-                        </div>
+                        <div class="text-[10px] text-slate-400">${parseFloat(item.product.price).toFixed(2)} € / ${item.product.unit}</div>
                     </div>
                     <div class="flex items-center gap-1.5 px-2">
                         <button onclick="updateCartQty('${item.product.id}', -1)" class="w-7 h-7 bg-slate-800 hover:bg-slate-700 rounded-lg font-bold text-slate-200 transition text-sm flex items-center justify-center">-</button>
@@ -1063,8 +1058,8 @@
             `;
         }).join('');
 
-        const activeCustomerLoyalty = loyaltyCards.find(c => c.id == room.cardId) || null;
-        let discountPct = activeCustomerLoyalty ? activeCustomerLoyalty.discount : 0;
+        const card = loyaltyCards.find(c => c.id == room.customerCardId);
+        let discountPct = card ? card.discount : 0;
         let discountAmount = (subtotal * discountPct) / 100;
         let total = subtotal - discountAmount;
 
@@ -1074,9 +1069,9 @@
     }
 
     function applyCustomerLoyalty() {
-        const cardId = document.getElementById('cart-customer-select').value || null;
+        const cardId = document.getElementById('cart-customer-select').value;
         const room = getCurrentRoom();
-        db.collection('rooms').doc(room.id).update({ cardId: cardId });
+        db.collection('rooms').doc(room.id).update({ customerCardId: cardId || null });
     }
 
     // --- KDS ODOSLANIE (IBA NOVÉ POLOŽKY) ---
@@ -1087,20 +1082,19 @@
             return;
         }
 
-        // Vyfiltrovať iba položky, ktoré ešte neboli odoslané na KDS
+        // Filtrujeme iba tie položky, ktoré ešte neboli plne odoslané
         let newItemsToSend = [];
         room.cart.forEach(item => {
-            const sentQty = item.sentQty || 0;
-            const diff = item.qty - sentQty;
-            if (diff > 0) {
+            const unsentQty = item.qty - (item.sentQty || 0);
+            if (unsentQty > 0) {
                 newItemsToSend.push({
                     id: item.product.id,
                     name: item.product.name,
-                    qty: diff,
+                    qty: unsentQty,
                     unit: item.product.unit,
                     price: item.product.price
                 });
-                item.sentQty = item.qty; // Označiť všetko ako poslané
+                item.sentQty = item.qty; // Označíme všetky za odoslané
             }
         });
 
@@ -1109,16 +1103,16 @@
             return;
         }
 
-        // Odpätie zo skladu pre nové položky
+        // Stiahnutie zo skladu iba nových položiek
         newItemsToSend.forEach(item => {
             const p = products.find(prod => prod.id === item.id);
             if (p) {
-                const newStock = Math.max(0, p.stock - item.qty);
+                const newStock = p.stock - item.qty;
                 db.collection('products').doc(p.id).update({ stock: newStock });
             }
         });
 
-        const totalForNew = newItemsToSend.reduce((a, b) => a + (b.price * b.qty), 0);
+        const newItemsTotal = newItemsToSend.reduce((acc, i) => acc + (i.price * i.qty), 0);
         const now = new Date();
 
         const kdsOrder = {
@@ -1126,7 +1120,7 @@
             timeStr: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
             hour: now.getHours(),
             room: room.name,
-            total: totalForNew,
+            total: newItemsTotal,
             includeInAnalytics: true,
             items: newItemsToSend
         };
@@ -1134,69 +1128,7 @@
         db.collection('transactions').add(kdsOrder);
         db.collection('rooms').doc(room.id).update({ cart: room.cart });
 
-        alert(`Na KDS boli úspešne odoslané nové položky (${newItemsToSend.length}) pre ${room.name}!`);
-    }
-
-    // --- TAB: INVENTÁR LOGIC ---
-    function renderInventory() {
-        const container = document.getElementById('inventory-grid');
-        if(!container) return;
-
-        if(products.length === 0) {
-            container.innerHTML = `<div class="col-span-full text-center py-12 text-slate-500 font-semibold">Žiadne produkty v databáze</div>`;
-            return;
-        }
-
-        container.innerHTML = products.map(p => {
-            const style = getCatStyle(p.category);
-            let statusBadge = `<span class="text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-md font-bold">Dostatok</span>`;
-            if (p.stock <= 0) {
-                statusBadge = `<span class="text-[10px] bg-rose-500/20 text-rose-400 border border-rose-500/30 px-2 py-0.5 rounded-md font-bold">Vypredané</span>`;
-            } else if (p.stock <= 10) {
-                statusBadge = `<span class="text-[10px] bg-amber-500/20 text-amber-400 border border-amber-500/30 px-2 py-0.5 rounded-md font-bold">Nízky stav</span>`;
-            }
-
-            return `
-                <div class="bg-slate-950/80 border border-slate-800/80 rounded-2xl p-4 flex flex-col justify-between shadow-xl relative overflow-hidden">
-                    <div class="w-1 absolute left-0 top-0 bottom-0 ${style.bar}"></div>
-                    <div class="pl-2">
-                        <div class="flex justify-between items-center mb-1">
-                            <span class="text-xs font-bold text-slate-400">${p.category}</span>
-                            ${statusBadge}
-                        </div>
-                        <h3 class="font-bold text-slate-100 text-base mb-2">${p.name}</h3>
-                        <div class="text-2xl font-black text-slate-100 font-mono mb-3">
-                            ${p.stock} <span class="text-sm text-slate-400 font-normal">${p.unit}</span>
-                        </div>
-                    </div>
-
-                    <div class="flex items-center gap-2 pt-2 border-t border-slate-800/80 pl-2">
-                        <button onclick="quickUpdateStock('${p.id}', 10)" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-200 py-2 rounded-xl font-bold text-xs transition">+10</button>
-                        <button onclick="quickUpdateStock('${p.id}', 50)" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-200 py-2 rounded-xl font-bold text-xs transition">+50</button>
-                        <button onclick="setCustomStockPrompt('${p.id}', ${p.stock})" class="bg-emerald-600 hover:bg-emerald-500 text-white p-2 rounded-xl text-xs font-bold transition flex items-center gap-1">
-                            <i class="fa-solid fa-pen"></i> Nastaviť
-                        </button>
-                    </div>
-                </div>
-            `;
-        }).join('');
-    }
-
-    function quickUpdateStock(productId, amount) {
-        const p = products.find(item => item.id === productId);
-        if (p) {
-            db.collection('products').doc(productId).update({ stock: p.stock + amount });
-        }
-    }
-
-    function setCustomStockPrompt(productId, currentStock) {
-        const val = prompt("Zadajte nové presné množstvo na sklade:", currentStock);
-        if (val !== null) {
-            const num = parseInt(val);
-            if (!isNaN(num) && num >= 0) {
-                db.collection('products').doc(productId).update({ stock: num });
-            }
-        }
+        alert(`Na KDS boli odoslané IBA NOVÉ položky pre ${room.name}!`);
     }
 
     function renderTransactionsTable() {
@@ -1230,6 +1162,42 @@
         if (t) {
             db.collection('transactions').doc(id).update({ includeInAnalytics: !t.includeInAnalytics });
         }
+    }
+
+    // --- INVENTÁR (NOVÉ) ---
+    function renderInventoryTable() {
+        const tbody = document.getElementById('inventory-table-body');
+        tbody.innerHTML = products.map(p => {
+            const style = getCatStyle(p.category);
+            return `
+                <tr class="hover:bg-slate-950/40">
+                    <td class="p-4 font-bold text-slate-100">${p.name}</td>
+                    <td class="p-4"><span class="text-xs font-bold px-2.5 py-1 rounded-lg ${style.bg} ${style.text} ${style.border} border">${p.category}</span></td>
+                    <td class="p-4 font-bold text-slate-300">${p.stock} ${p.unit}</td>
+                    <td class="p-4">
+                        <input type="number" id="inv-input-${p.id}" value="${p.stock}" class="w-28 p-2 bg-slate-950 border border-slate-700 rounded-xl text-slate-100 font-bold text-sm focus:outline-none focus:border-emerald-500">
+                        <span class="text-xs text-slate-400 ml-1">${p.unit}</span>
+                    </td>
+                    <td class="p-4 text-right">
+                        <button onclick="saveInventoryItem('${p.id}')" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-3.5 py-2 rounded-xl transition shadow-lg shadow-emerald-600/20">
+                            Prepočítať / Uložiť
+                        </button>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    }
+
+    function saveInventoryItem(productId) {
+        const val = parseInt(document.getElementById(`inv-input-${productId}`).value);
+        if (isNaN(val) || val < 0) {
+            alert("Zadajte platné množstvo!");
+            return;
+        }
+
+        db.collection('products').doc(productId).update({ stock: val }).then(() => {
+            alert("Inventárny stav bol úspešne aktualizovaný!");
+        });
     }
 
     // --- PAYMENT MODAL & FLOW ---
@@ -1300,18 +1268,18 @@
     function finalizeTransaction(method) {
         const total = parseFloat(document.getElementById('total-val').innerText);
         const room = getCurrentRoom();
-        const activeCustomerLoyalty = loyaltyCards.find(c => c.id == room.cardId) || null;
+        const card = loyaltyCards.find(c => c.id == room.customerCardId);
 
-        if (activeCustomerLoyalty) {
+        if (card) {
             const pointsEarned = Math.floor(total);
-            const newPoints = activeCustomerLoyalty.points + pointsEarned;
-            db.collection('cards').doc(activeCustomerLoyalty.id).update({ points: newPoints });
-            alert(`Platba ${total.toFixed(2)} € bola uhradená (${method}). Zákazník získal +${pointsEarned} bodov!`);
+            const newPoints = card.points + pointsEarned;
+            db.collection('cards').doc(card.id).update({ points: newPoints });
+            alert(`Platba ${total.toFixed(2)} € bola uhradená (${method}). Zákazník ${card.name} získal +${pointsEarned} bodov!`);
         } else {
             alert(`Platba ${total.toFixed(2)} € bola úspešne vyrovnaná (${method}).`);
         }
 
-        db.collection('rooms').doc(room.id).update({ cart: [], cardId: null });
+        clearCart();
         closePaymentModal();
     }
 
@@ -1495,7 +1463,7 @@
         if (id) {
             db.collection('rooms').doc(id).update({ name: name });
         } else {
-            db.collection('rooms').add({ name: name, cart: [], cardId: null });
+            db.collection('rooms').add({ name: name, cart: [], customerCardId: null });
         }
 
         closeRoomModal();
@@ -1531,15 +1499,15 @@
                 </td>
             </tr>
         `).join('');
-
-        renderLoyaltyOptions();
     }
 
     function renderLoyaltyOptions() {
         const select = document.getElementById('cart-customer-select');
-        select.innerHTML = `<option value="">-- Bez karty --</option>` + loyaltyCards.map(c => `
-            <option value="${c.id}">${c.name} (${c.code}) - Zľava ${c.discount}%</option>
-        `).join('');
+        if(select) {
+            select.innerHTML = `<option value="">-- Bez karty --</option>` + loyaltyCards.map(c => `
+                <option value="${c.id}">${c.name} (${c.code}) - Zľava ${c.discount}%</option>
+            `).join('');
+        }
     }
 
     function openCardModal(cardId = null) {
