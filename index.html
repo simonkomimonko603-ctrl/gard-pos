@@ -219,7 +219,7 @@
                 <div class="flex justify-between items-center bg-slate-900/80 border border-slate-800 p-4 rounded-2xl shadow-xl">
                     <div>
                         <h2 class="text-xl font-bold text-slate-100">Prehľad Predajov a Štatistiky</h2>
-                        <p class="text-xs text-slate-400">Grafy sa počítajú výhradne z odoslaných KDS objednávok (započítava aj uplatnené zľavy).</p>
+                        <p class="text-xs text-slate-400">Grafy sa počítajú výhradne z odoslaných KDS objednávok (započítavajú aj zľavy).</p>
                     </div>
                 </div>
 
@@ -892,7 +892,6 @@
         const isGiftProduct = product.isGift || (product.category === 'Darčeky');
         const pointsCost = product.giftPoints || Math.round(product.price);
 
-        // KONTROLA PRE DARČEK
         if (isGiftProduct) {
             if (!activeCustomerLoyalty) {
                 alert("Pre uplatnenie darčeka musíte najprv vybrať vernostného zákazníka!");
@@ -932,7 +931,7 @@
                     pointsCost: pointsCost
                 };
 
-                const existing = room.cart.find(item => item.product.id === productId && item.product.isGiftItem && item.status === 'new');
+                const existing = room.cart.find(item => item.product.id === productId && item.product.isGiftItem && (item.status || 'new') === 'new');
                 if (existing) {
                     existing.qty += 1;
                 } else {
@@ -956,7 +955,7 @@
         const room = getCurrentRoom();
         if(!room.cart) room.cart = [];
         
-        // Hľadáme iba neodoslané ('new') položky pre úpravu počtu
+        // Pridávame vždy ako NOVÚ položku (status = 'new')
         const existing = room.cart.find(item => item.product.id === product.id && !item.product.isGiftItem && (item.status || 'new') === 'new');
         if (existing) {
             if (existing.qty + 1 > product.stock) {
@@ -1046,14 +1045,14 @@
             const isSent = itemStatus === 'sent';
 
             return `
-                <div class="flex justify-between items-center bg-slate-950/60 border border-slate-800 p-3 rounded-xl text-sm">
+                <div class="flex justify-between items-center bg-slate-950/60 border border-slate-800 p-3 rounded-xl text-sm mb-2">
                     <div class="flex-1">
                         <div class="font-bold text-slate-200 flex items-center gap-1.5 flex-wrap">
-                            ${item.product.name}
-                            ${isGift ? '<span class="text-[10px] bg-amber-500/20 text-amber-400 px-1.5 py-0.2 rounded font-bold">DARČEK</span>' : ''}
+                            <span>${item.product.name}</span>
+                            ${isGift ? '<span class="text-[10px] bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded font-bold">DARČEK</span>' : ''}
                             ${isSent 
-                                ? '<span class="text-[10px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-1.5 py-0.2 rounded font-bold uppercase"><i class="fa-solid fa-check"></i> Odoslané</span>' 
-                                : '<span class="text-[10px] bg-amber-500/20 text-amber-300 border border-amber-500/30 px-1.5 py-0.2 rounded font-bold uppercase"><i class="fa-solid fa-clock"></i> Nové</span>'
+                                ? '<span class="text-[10px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-1.5 py-0.5 rounded font-bold uppercase"><i class="fa-solid fa-check"></i> Odoslané</span>' 
+                                : '<span class="text-[10px] bg-amber-500/20 text-amber-300 border border-amber-500/30 px-1.5 py-0.5 rounded font-bold uppercase"><i class="fa-solid fa-clock"></i> Nové</span>'
                             }
                         </div>
                         <div class="text-xs text-slate-400">${isGift ? `${item.product.pointsCost} b / ks` : `${parseFloat(item.product.price).toFixed(2)} € / ${item.product.unit}`}</div>
@@ -1095,7 +1094,7 @@
         }
     }
 
-    // --- KDS ODOSLANIE (IBA NOVO PRIDANÉ POLOŽKY, SO ZAPOČÍTANÍM ZĽAVY) ---
+    // --- KDS ODOSLANIE (ODOSIELAJÚ SA IBA POLOŽKY 'NOVÉ') ---
     function sendToKitchen() {
         const room = getCurrentRoom();
         if (!room.cart || room.cart.length === 0) {
@@ -1103,7 +1102,6 @@
             return;
         }
 
-        // Vyberieme len položky, ktoré sú označené ako 'new'
         const newItems = room.cart.filter(item => (item.status || 'new') === 'new');
 
         if (newItems.length === 0) {
@@ -1113,7 +1111,6 @@
 
         let discountPct = activeCustomerLoyalty ? activeCustomerLoyalty.discount : 0;
 
-        // Vypočítame medzisúčet a celkovú sumu pre novo odosielané položky (po zľave)
         let newItemsSubtotal = 0;
         newItems.forEach(item => {
             newItemsSubtotal += item.product.price * item.qty;
@@ -1137,7 +1134,7 @@
             room: room.name,
             subtotal: newItemsSubtotal,
             discountPct: discountPct,
-            total: newItemsTotal, // Výsledná suma započítava uplatnenú zľavu!
+            total: newItemsTotal, // Započítava uplatnenú zľavu!
             includeInAnalytics: true,
             customer: activeCustomerLoyalty ? activeCustomerLoyalty.name : 'Anonym',
             items: newItems.map(i => ({
@@ -1160,7 +1157,7 @@
 
         db.collection('rooms').doc(room.id).update({ cart: room.cart });
 
-        alert(`Bolo odoslaných ${newItems.length} nových položiek na KDS pre ${room.name}! (Suma po zľave: ${newItemsTotal.toFixed(2)} €)`);
+        alert(`Odoslané ${newItems.length} nové položky na KDS! Suma nového balíka po zľave: ${newItemsTotal.toFixed(2)} €`);
     }
 
     function renderTransactionsTable() {
@@ -1312,7 +1309,7 @@
         kdsTransactions.forEach(t => {
             if(t.includeInAnalytics) {
                 activeOrdersCount++;
-                totalRevenue += t.total; // T.total už započítava výslednú sumu po zľave
+                totalRevenue += t.total;
                 const hr = `${t.hour}:00`;
                 hourlyMap[hr] = (hourlyMap[hr] || 0) + t.total;
 
