@@ -1419,3 +1419,118 @@ const db = firebase.firestore();
                     </div>
                     <div class="flex gap-2 mt-4">
                         <button onclick="selectRoom('${r.id}', '${r.name}')" class="flex-1 ${isSelected ? 'bg-emerald-600 text-white' : 'bg-slate-800 hover:bg-slate-700 text-slate-200'} text-xs py-2 rounded-xl font-bold transition">
+                        Vybrať
+                    </button>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+function selectRoom(id, name) {
+    activeRoomId = id;
+    renderRooms();
+    renderCart();
+}
+
+function openRoomModal() {
+    document.getElementById('room-name-input').value = '';
+    document.getElementById('room-modal').classList.remove('hidden');
+    document.getElementById('room-modal').classList.add('flex');
+}
+
+function closeRoomModal() {
+    document.getElementById('room-modal').classList.add('hidden');
+    document.getElementById('room-modal').classList.remove('flex');
+}
+
+function saveRoom() {
+    const name = document.getElementById('room-name-input').value.trim();
+    if (name) {
+        db.collection('rooms').add({ name: name, cart: [] });
+        closeRoomModal();
+    }
+}
+
+// --- LOYALTY CARDS MANAGEMENT ---
+function renderLoyaltyOptions() {
+    const select = document.getElementById('cart-customer-select');
+    select.innerHTML = '<option value="">-- Bez karty --</option>' + 
+        loyaltyCards.map(c => `<option value="${c.id}">${c.name} (${c.code}) - ${c.points}b</option>`).join('');
+}
+
+function renderLoyaltyTable() {
+    const tbody = document.getElementById('loyalty-cards-table-body');
+    if (loyaltyCards.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-slate-500">Žiadne vernostné karty</td></tr>`;
+        return;
+    }
+    tbody.innerHTML = loyaltyCards.map(c => `
+        <tr class="border-b border-slate-800">
+            <td class="p-4 font-bold text-slate-200">${c.name}</td>
+            <td class="p-4 text-slate-400 font-mono text-xs">${c.code}</td>
+            <td class="p-4 text-amber-400 font-bold">${c.points} b</td>
+            <td class="p-4 text-emerald-400 font-bold">${c.discount}%</td>
+            <td class="p-4 text-right">
+                <button onclick="deleteCard('${c.id}')" class="text-rose-400 hover:text-rose-300 text-xs bg-rose-500/10 p-2 rounded-lg border border-rose-500/20"><i class="fa-solid fa-trash"></i></button>
+            </td>
+        </tr>
+    `).join('');
+    renderLoyaltyOptions();
+}
+
+function openCardModal() {
+    document.getElementById('card-name-input').value = '';
+    document.getElementById('card-code-input').value = '';
+    document.getElementById('card-points-input').value = '0';
+    document.getElementById('card-discount-input').value = '0';
+    document.getElementById('card-modal').classList.remove('hidden');
+    document.getElementById('card-modal').classList.add('flex');
+}
+
+function closeCardModal() {
+    document.getElementById('card-modal').classList.add('hidden');
+    document.getElementById('card-modal').classList.remove('flex');
+}
+
+function saveCard() {
+    const name = document.getElementById('card-name-input').value.trim();
+    const code = document.getElementById('card-code-input').value.trim();
+    const points = parseInt(document.getElementById('card-points-input').value) || 0;
+    const discount = parseFloat(document.getElementById('card-discount-input').value) || 0;
+
+    if (name && code) {
+        db.collection('cards').add({ name, code, points, discount });
+        closeCardModal();
+    }
+}
+
+function deleteCard(id) {
+    if (confirm("Naozaj chcete vymazať túto kartu?")) {
+        db.collection('cards').doc(id).delete();
+    }
+}
+
+function renderStock() {
+    const tbody = document.getElementById('stock-table-body');
+    if (products.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-slate-500">Žiadne produkty na sklade</td></tr>`;
+        return;
+    }
+    tbody.innerHTML = products.map(p => `
+        <tr class="border-b border-slate-800">
+            <td class="p-4 font-bold text-slate-200">${p.name}</td>
+            <td class="p-4 text-slate-400 text-xs">${p.category}</td>
+            <td class="p-4 text-emerald-400 font-bold">${parseFloat(p.price).toFixed(2)} €</td>
+            <td class="p-4 text-amber-400 font-bold">${p.isGift ? `${p.giftPoints || Math.round(p.price)} b` : '-'}</td>
+            <td class="p-4 font-bold ${p.stock <= 10 ? 'text-rose-400' : 'text-slate-300'}">${p.stock} ${p.unit}</td>
+            <td class="p-4 text-right space-x-2">
+                <button onclick="openProductModal('${p.id}')" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 p-2 rounded-lg border border-slate-700"><i class="fa-solid fa-pen"></i></button>
+                <button onclick="deleteProduct('${p.id}')" class="text-rose-400 hover:text-rose-300 text-xs bg-rose-500/10 p-2 rounded-lg border border-rose-500/20"><i class="fa-solid fa-trash"></i></button>
+            </td>
+        </tr>
+    `).join('');
+}
+</script>
+</body>
+</html>
