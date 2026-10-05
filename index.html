@@ -34,18 +34,20 @@
     // ==========================================
     // ⚙️ TU VLOŽTE VÁŠ FIREBASE CONFIG
     // ==========================================
-    const firebaseConfig = {
-        apiKey: "AIzaSyDNReaEooXx-6k5L7xQVRugHQ_aPAjCLIw",
-        authDomain: "gard-pos.firebaseapp.com",
-        projectId: "gard-pos",
-        storageBucket: "gard-pos.firebasestorage.app",
-        messagingSenderId: "597035606534",
-        appId: "1:597035606534:web:824ebae8ea54a14c4f9987"
-    };
+    // Konfigurácia z vášho Firebase konzoly
+const firebaseConfig = {
+  apiKey: "AIzaSyDNReaEooXx-6k5l7xQVRugHQ_aPAjclIw",
+  authDomain: "gard-pos.firebaseapp.com",
+  projectId: "gard-pos",
+  storageBucket: "gard-pos.firebasestorage.app",
+  messagingSenderId: "597035606534",
+  appId: "1:597035606534:web:824ebae8ea54a14c4f9987",
+  measurementId: "G-S1H21HW859"
+};
 
-    // Inicializácia Firebase
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
+// Inicializácia pre Compat verzii
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
 </script>
 
 <div id="app" class="h-full w-full flex flex-col">
