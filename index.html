@@ -543,12 +543,11 @@
     // --- REALTIME STATE ---
     let categoriesList = ["Káva & Nápoje", "Jedlo", "Dezerty", "Darčeky", "Rôzne"];
     let products = [];
-    let rooms = [{ id: 'main', name: 'Hlavná', cart: [] }];
+    let rooms = [{ id: 'main', name: 'Hlavná', cart: [], selectedCardId: null }];
     let loyaltyCards = [];
     let kdsTransactions = [];
 
     let activeRoomId = 'main';
-    let activeCustomerLoyalty = null;
     let selectedCategory = 'All';
 
     let barChart = null;
@@ -610,7 +609,7 @@
                 rooms.push({ id: doc.id, ...doc.data() });
             });
             if(rooms.length === 0) {
-                db.collection('rooms').doc('main').set({ name: 'Hlavná', cart: [] });
+                db.collection('rooms').doc('main').set({ name: 'Hlavná', cart: [], selectedCardId: null });
             } else {
                 renderRooms();
                 renderCart();
@@ -633,12 +632,9 @@
             snapshot.forEach(doc => {
                 loyaltyCards.push({ id: doc.id, ...doc.data() });
             });
-            if (activeCustomerLoyalty) {
-                activeCustomerLoyalty = loyaltyCards.find(c => c.id === activeCustomerLoyalty.id) || null;
-            }
             renderLoyaltyTable();
             renderProducts();
-            updateCustomerBadge();
+            renderCart();
         });
     }
 
@@ -869,15 +865,23 @@
         closeCustomItemModal();
     }
 
-    // --- CART LOGIC PER ROOM ---
+    // --- ROOMS & CART HELPERS ---
     function getCurrentRoom() {
         let room = rooms.find(r => r.id === activeRoomId);
         if(!room) {
-            room = rooms[0] || { id: 'main', name: 'Hlavná', cart: [] };
+            room = rooms[0] || { id: 'main', name: 'Hlavná', cart: [], selectedCardId: null };
             activeRoomId = room.id;
         }
         if(!room.cart) room.cart = [];
         return room;
+    }
+
+    function getActiveCustomerLoyalty() {
+        const room = getCurrentRoom();
+        if (room && room.selectedCardId) {
+            return loyaltyCards.find(c => c.id === room.selectedCardId) || null;
+        }
+        return null;
     }
 
     function addToCart(productId) {
@@ -889,6 +893,7 @@
             return;
         }
 
+        const activeCustomerLoyalty = getActiveCustomerLoyalty();
         const isGiftProduct = product.isGift || (product.category === 'Darčeky');
         const pointsCost = product.giftPoints || Math.round(product.price);
 
@@ -955,7 +960,6 @@
         const room = getCurrentRoom();
         if(!room.cart) room.cart = [];
         
-        // Pridávame vždy ako NOVÚ položku (status = 'new')
         const existing = room.cart.find(item => item.product.id === product.id && !item.product.isGiftItem && (item.status || 'new') === 'new');
         if (existing) {
             if (existing.qty + 1 > product.stock) {
@@ -972,6 +976,7 @@
 
     function updateCartQty(productId, delta, isGiftItem = false, status = 'new') {
         const room = getCurrentRoom();
+        const activeCustomerLoyalty = getActiveCustomerLoyalty();
         const item = room.cart.find(i => i.product.id === productId && !!i.product.isGiftItem === isGiftItem && (i.status || 'new') === status);
         if (!item) return;
 
@@ -1006,6 +1011,7 @@
 
     function clearCart() {
         const room = getCurrentRoom();
+        const activeCustomerLoyalty = getActiveCustomerLoyalty();
         
         if (room.cart && activeCustomerLoyalty) {
             let pointsToReturn = 0;
@@ -1020,12 +1026,19 @@
             }
         }
 
-        db.collection('rooms').doc(room.id).update({ cart: [] });
+        db.collection('rooms').doc(room.id).update({ cart: [], selectedCardId: null });
     }
 
     function renderCart() {
         const room = getCurrentRoom();
         const container = document.getElementById('order-items');
+
+        // Nastavíme vybranú kartu vo výběrovom poli (Select) podľa izby
+        const customerSelect = document.getElementById('cart-customer-select');
+        if (customerSelect) {
+            customerSelect.value = room.selectedCardId || "";
+        }
+        updateCustomerBadge();
         
         if (!room.cart || room.cart.length === 0) {
             container.innerHTML = `<div class="text-center text-slate-500 mt-10">Účet je zatiaľ prázdny</div>`;
@@ -1067,6 +1080,7 @@
             `;
         }).join('');
 
+        const activeCustomerLoyalty = getActiveCustomerLoyalty();
         let discountPct = activeCustomerLoyalty ? activeCustomerLoyalty.discount : 0;
         let discountAmount = (subtotal * discountPct) / 100;
         let total = subtotal - discountAmount;
@@ -1078,14 +1092,16 @@
 
     function applyCustomerLoyalty() {
         const cardId = document.getElementById('cart-customer-select').value;
-        activeCustomerLoyalty = loyaltyCards.find(c => c.id == cardId) || null;
-        updateCustomerBadge();
-        renderProducts();
-        renderCart();
+        const room = getCurrentRoom();
+        
+        // UKLADÁME VYBRANÚ KARTU PRIAMO K IZBE V DATABASE!
+        db.collection('rooms').doc(room.id).update({ selectedCardId: cardId || null });
     }
 
     function updateCustomerBadge() {
         const badge = document.getElementById('active-user-points-badge');
+        const activeCustomerLoyalty = getActiveCustomerLoyalty();
+
         if (activeCustomerLoyalty) {
             badge.innerText = `${activeCustomerLoyalty.points} b (${activeCustomerLoyalty.discount}% zľava)`;
             badge.classList.remove('hidden');
@@ -1094,7 +1110,7 @@
         }
     }
 
-    // --- KDS ODOSLANIE (ODOSIELAJÚ SA IBA POLOŽKY 'NOVÉ') ---
+    // --- KDS ODOSLANIE ---
     function sendToKitchen() {
         const room = getCurrentRoom();
         if (!room.cart || room.cart.length === 0) {
@@ -1109,13 +1125,13 @@
             return;
         }
 
+        const activeCustomerLoyalty = getActiveCustomerLoyalty();
         let discountPct = activeCustomerLoyalty ? activeCustomerLoyalty.discount : 0;
 
         let newItemsSubtotal = 0;
         newItems.forEach(item => {
             newItemsSubtotal += item.product.price * item.qty;
 
-            // Zníženie zo skladu
             const p = products.find(prod => prod.id === item.product.id);
             if (p) {
                 const newStock = p.stock - item.qty;
@@ -1134,7 +1150,7 @@
             room: room.name,
             subtotal: newItemsSubtotal,
             discountPct: discountPct,
-            total: newItemsTotal, // Započítava uplatnenú zľavu!
+            total: newItemsTotal,
             includeInAnalytics: true,
             customer: activeCustomerLoyalty ? activeCustomerLoyalty.name : 'Anonym',
             items: newItems.map(i => ({
@@ -1148,7 +1164,6 @@
 
         db.collection('transactions').add(kdsOrder);
 
-        // Označíme odoslané položky na účte ako 'sent'
         room.cart.forEach(item => {
             if ((item.status || 'new') === 'new') {
                 item.status = 'sent';
@@ -1244,23 +1259,52 @@
         document.getElementById('cash-change-val').innerText = `${Math.max(0, change).toFixed(2)} €`;
     }
 
+    // ČIASTOČNÁ PLATBA - UKLADÁ SA DO FIREBASE DB!
     function submitPartialPayment(method) {
+        const room = getCurrentRoom();
         const total = parseFloat(document.getElementById('total-val').innerText);
         const partial = parseFloat(document.getElementById('partial-amount-input').value) || 0;
 
         if (partial <= 0 || partial >= total) {
-            alert("Zadajte platnú čiastočnú sumu.");
+            alert("Zadajte platnú čiastočnú sumu (musí byť menšia ako celkový účet).");
             return;
         }
 
-        alert(`Čiastočná platba ${partial.toFixed(2)} € bola prijatá (${method}).`);
-        document.getElementById('total-val').innerText = `${(total - partial).toFixed(2)} €`;
-        document.getElementById('modal-payment-amount').innerText = `${(total - partial).toFixed(2)} €`;
-        document.getElementById('payment-detail-partial').classList.add('hidden');
+        // Pridáme čiastočnú platbu ako odčítaciu položku priamo na účet
+        const partialItem = {
+            id: 'partial_' + Date.now(),
+            name: `Čiastočná úhrada (${method})`,
+            price: -partial,
+            unit: 'ks',
+            stock: 999
+        };
+
+        if (!room.cart) room.cart = [];
+        room.cart.push({ product: partialItem, qty: 1, status: 'sent' });
+
+        // Uložíme zmenený košík v cloude
+        db.collection('rooms').doc(room.id).update({ cart: room.cart });
+
+        // Uložíme transakciu do KDS pre grafy
+        const now = new Date();
+        db.collection('transactions').add({
+            timestamp: now.toISOString(),
+            timeStr: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            hour: now.getHours(),
+            room: room.name,
+            total: partial,
+            includeInAnalytics: true,
+            customer: 'Čiastočná platba',
+            items: [{ id: partialItem.id, name: partialItem.name, qty: 1, unit: 'ks', price: partial }]
+        });
+
+        alert(`Čiastočná platba ${partial.toFixed(2)} € byla prijatá (${method}) a uložená do databázy!`);
+        closePaymentModal();
     }
 
     function finalizeTransaction(method) {
         const total = parseFloat(document.getElementById('total-val').innerText);
+        const activeCustomerLoyalty = getActiveCustomerLoyalty();
 
         if (activeCustomerLoyalty && total > 0) {
             const pointsEarned = Math.floor(total);
@@ -1272,7 +1316,8 @@
         }
 
         const room = getCurrentRoom();
-        db.collection('rooms').doc(room.id).update({ cart: [] });
+        // Po kompletnom zaplatení vyčistíme účet aj priradenú kartu
+        db.collection('rooms').doc(room.id).update({ cart: [], selectedCardId: null });
         closePaymentModal();
     }
 
@@ -1467,7 +1512,7 @@
     function saveRoom() {
         const name = document.getElementById('room-name-input').value.trim();
         if (name) {
-            db.collection('rooms').add({ name: name, cart: [] });
+            db.collection('rooms').add({ name: name, cart: [], selectedCardId: null });
             closeRoomModal();
         }
     }
@@ -1475,8 +1520,12 @@
     // --- LOYALTY CARDS MANAGEMENT ---
     function renderLoyaltyOptions() {
         const select = document.getElementById('cart-customer-select');
+        const room = getCurrentRoom();
+        
         select.innerHTML = '<option value="">-- Bez karty --</option>' + 
             loyaltyCards.map(c => `<option value="${c.id}">${c.name} (${c.code}) - ${c.points}b</option>`).join('');
+        
+        select.value = room.selectedCardId || "";
     }
 
     function renderLoyaltyTable() {
