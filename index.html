@@ -31,7 +31,9 @@
 <body class="h-screen flex flex-col font-sans overflow-hidden bg-slate-950 text-slate-100 select-none">
 
 <script>
-    // Konfigurácia Firebase
+    // ==========================================
+    // ⚙️ TU VLOŽTE VÁŠ FIREBASE CONFIG
+    // ==========================================
     const firebaseConfig = {
         apiKey: "AIzaSyDNReaEooXx-6k5L7xQVRugHQ_aPAjCLIw",
         authDomain: "gard-pos.firebaseapp.com",
@@ -649,38 +651,7 @@
             }
         }
     }
-function submitPartialPayment(method) {
-    const total = parseFloat(document.getElementById('total-val').innerText);
-    const partial = parseFloat(document.getElementById('partial-amount-input').value) || 0;
 
-    if (partial <= 0 || partial >= total) {
-        alert("Zadajte platnú čiastočnú sumu (musí byť menšia ako celková suma).");
-        return;
-    }
-
-    const room = getCurrentRoom();
-    if (!room) return;
-    if (!room.cart) room.cart = [];
-
-    const partialPaymentItem = {
-        id: 'partial_' + Date.now(),
-        name: `Čiastočná úhrada (${method})`,
-        price: -partial,
-        unit: 'ks',
-        stock: 9999
-    };
-
-    room.cart.push({ product: partialPaymentItem, qty: 1 });
-
-    db.collection('rooms').doc(room.id).update({ cart: room.cart }).then(() => {
-        alert(`Čiastočná platba ${partial.toFixed(2)} € (${method}) bola úspešne uložená na účet!`);
-        document.getElementById('partial-amount-input').value = '';
-        closePaymentModal();
-    }).catch(err => {
-        console.error("Chyba pri ukladaní čiastočnej platby: ", err);
-        alert("Nepodarilo sa uložiť čiastočnú platbu do databázy.");
-    });
-}
     function enterPin() {
         const found = users.find(u => u.pin === enteredPin);
         if (found) {
