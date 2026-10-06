@@ -28,7 +28,7 @@
         .splash-logo { animation: pulseGlow 2s infinite ease-in-out; }
     </style>
 </head>
-<body class="h-screen flex flex-col font-sans overflow-hidden bg-slate-950 text-slate-100 select-none">
+<body class="h-screen flex flex-col font-sans overflow-hidden bg-slate-950 text-slate-100 select-none" onmousemove="resetScreensaverTimer()" onclick="resetScreensaverTimer()" onkeydown="resetScreensaverTimer()">
 
 <script>
     // ==========================================
@@ -48,6 +48,17 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 </script>
+
+<!-- SCREENSAVER OVERLAY -->
+<div id="screensaver-overlay" onclick="hideScreensaver()" class="fixed inset-0 z-50 bg-black hidden flex-col items-center justify-center cursor-pointer">
+    <video id="screensaver-video" class="w-full h-full object-cover" autoplay loop muted playsinline>
+        <source id="screensaver-video-source" src="" type="video/mp4">
+        Váš prehliadač nepodporuje prehrávanie videa.
+    </video>
+    <div class="absolute bottom-6 right-6 bg-black/60 backdrop-blur-md px-4 py-2 rounded-xl text-xs text-slate-300 font-bold border border-white/10 pointer-events-none">
+        Kliknutím alebo pohybom myši ukončíte šetrič
+    </div>
+</div>
 
 <div id="app" class="h-full w-full flex flex-col">
 
@@ -293,8 +304,35 @@
                 </table>
             </div>
 
-            <!-- TAB: SKLAD & PRODUKTY -->
+            <!-- TAB: SKLAD & PRODUKTY & NASTAVENIE SCREENSAVERA -->
             <div id="view-stock" class="h-full hidden flex-col bg-slate-900/60 border border-slate-800 rounded-2xl shadow-2xl p-6 overflow-y-auto">
+                
+                <!-- SEKAE SCREENSAVER NASTAVENIA -->
+                <div class="bg-slate-950/80 border border-slate-800 rounded-2xl p-4 mb-6 shadow-xl">
+                    <h3 class="text-sm font-bold text-slate-200 mb-3 flex items-center gap-2">
+                        <i class="fa-solid fa-tv text-indigo-400"></i> Nastavenia Šetriča Obrazovky (Screensaver)
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-400 mb-1">Cesta / URL k videu (alebo lokálny súbor):</label>
+                            <input type="text" id="ss-url-input" class="w-full p-2.5 border border-slate-700 bg-slate-900 text-slate-100 rounded-xl text-xs focus:outline-none focus:border-indigo-500" placeholder="napr. video.mp4 alebo https://.../promo.mp4">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-400 mb-1">Čas nečinnosti (sekundy):</label>
+                            <input type="number" id="ss-timeout-input" class="w-full p-2.5 border border-slate-700 bg-slate-900 text-slate-100 rounded-xl text-xs focus:outline-none focus:border-indigo-500" placeholder="60">
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="checkbox" id="ss-enabled-checkbox" class="w-4 h-4 accent-indigo-500 rounded">
+                                <span class="text-xs font-bold text-slate-300">Zapnúť Šetrič</span>
+                            </label>
+                            <button onclick="saveScreensaverSettings()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2.5 rounded-xl font-bold text-xs transition">
+                                Uložiť Šetrič
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="flex justify-between items-center mb-6">
                     <div>
                         <h2 class="text-xl font-bold text-slate-100">Správa Skladu & Produktov</h2>
@@ -559,6 +597,53 @@
     let barChart = null;
     let pieChart = null;
 
+    // --- SCREENSAVER LOGIC ---
+    let screensaverSettings = { enabled: false, videoUrl: '', timeout: 60 };
+    let screensaverTimer = null;
+
+    function resetScreensaverTimer() {
+        if (screensaverTimer) clearTimeout(screensaverTimer);
+        if (screensaverSettings.enabled && screensaverSettings.timeout > 0 && screensaverSettings.videoUrl) {
+            screensaverTimer = setTimeout(showScreensaver, screensaverSettings.timeout * 1000);
+        }
+    }
+
+    function showScreensaver() {
+        if (!screensaverSettings.enabled || !screensaverSettings.videoUrl) return;
+        const overlay = document.getElementById('screensaver-overlay');
+        const video = document.getElementById('screensaver-video');
+        const source = document.getElementById('screensaver-video-source');
+
+        if (source.src !== screensaverSettings.videoUrl) {
+            source.src = screensaverSettings.videoUrl;
+            video.load();
+        }
+
+        overlay.classList.remove('hidden');
+        overlay.classList.add('flex');
+        video.play().catch(() => {});
+    }
+
+    function hideScreensaver() {
+        const overlay = document.getElementById('screensaver-overlay');
+        const video = document.getElementById('screensaver-video');
+        overlay.classList.add('hidden');
+        overlay.classList.remove('flex');
+        video.pause();
+        resetScreensaverTimer();
+    }
+
+    function saveScreensaverSettings() {
+        const url = document.getElementById('ss-url-input').value.trim();
+        const timeout = parseInt(document.getElementById('ss-timeout-input').value) || 60;
+        const enabled = document.getElementById('ss-enabled-checkbox').checked;
+
+        screensaverSettings = { videoUrl: url, timeout: timeout, enabled: enabled };
+        db.collection('settings').doc('screensaver').set(screensaverSettings);
+        alert("Nastavenia šetriča boli uložené a synchronizované!");
+        resetScreensaverTimer();
+    }
+
     // --- INITIALIZATION ---
     window.onload = function() {
         runSplash();
@@ -587,7 +672,18 @@
 
     // --- FIRESTORE REALTIME LISTENERS ---
     function initRealtimeListeners() {
-        // 1. Synchronizácia Kategórií
+        // Synchronizácia Šetriča
+        db.collection('settings').doc('screensaver').onSnapshot(doc => {
+            if (doc.exists) {
+                screensaverSettings = doc.data();
+                document.getElementById('ss-url-input').value = screensaverSettings.videoUrl || '';
+                document.getElementById('ss-timeout-input').value = screensaverSettings.timeout || 60;
+                document.getElementById('ss-enabled-checkbox').checked = !!screensaverSettings.enabled;
+                resetScreensaverTimer();
+            }
+        });
+
+        // Synchronizácia Kategórií
         db.collection('settings').doc('categories').onSnapshot(doc => {
             if(doc.exists && doc.data().list) {
                 categoriesList = doc.data().list;
@@ -597,7 +693,7 @@
             renderCategories();
         });
 
-        // 2. Synchronizácia Produktov
+        // Synchronizácia Produktov
         db.collection('products').onSnapshot(snapshot => {
             products = [];
             snapshot.forEach(doc => {
@@ -608,7 +704,7 @@
             renderStock();
         });
 
-        // 3. Synchronizácia Izieb/Stolov a ich Košíkov
+        // Synchronizácia Izieb/Stolov a ich Košíkov
         db.collection('rooms').onSnapshot(snapshot => {
             rooms = [];
             snapshot.forEach(doc => {
@@ -622,7 +718,7 @@
             }
         });
 
-        // 4. Synchronizácia KDS Transakcií
+        // Synchronizácia KDS Transakcií
         db.collection('transactions').onSnapshot(snapshot => {
             kdsTransactions = [];
             snapshot.forEach(doc => {
@@ -632,7 +728,7 @@
             if(barChart) updateAnalyticsAndCharts();
         });
 
-        // 5. Synchronizácia Vernostných kariet
+        // Synchronizácia Vernostných kariet
         db.collection('cards').onSnapshot(snapshot => {
             loyaltyCards = [];
             snapshot.forEach(doc => {
@@ -687,6 +783,7 @@
             renderTransactionsTable();
             renderCart();
             initCharts();
+            resetScreensaverTimer();
         } else {
             document.getElementById('pin-error').classList.remove('hidden');
             clearPin();
@@ -783,7 +880,7 @@
         }
     }
 
-    // --- PRODUCTS DISPLAY & NETRACKOVAŤ / DARČEKY LOGIC ---
+    // --- PRODUCTS DISPLAY ---
     function renderProducts() {
         const grid = document.getElementById('products-grid');
         const filtered = selectedCategory === 'All' ? products : products.filter(p => p.category === selectedCategory);
@@ -792,7 +889,6 @@
             const isGift = p.isGift || (p.category === 'Darčeky');
             const giftPointsCost = p.giftPoints || Math.round(p.price);
 
-            // AK JE UNTRACKED, ZOBRAZÍ `--`
             const stockDisplay = p.untracked ? '<span class="text-indigo-400 font-bold">--</span>' : `<span class="${p.stock <= 10 ? 'text-rose-400 font-bold' : 'text-slate-300'}">${p.stock}${p.unit}</span>`;
 
             if (isGift) {
@@ -869,7 +965,7 @@
         };
 
         if(!room.cart) room.cart = [];
-        room.cart.push({ product: customItemProduct, qty: 1, status: 'new' });
+        room.cart.push({ product: customItemProduct, qty: 1, status: 'new', pointsAwarded: 0 });
 
         db.collection('rooms').doc(room.id).update({ cart: room.cart });
         closeCustomItemModal();
@@ -898,7 +994,6 @@
         const product = products.find(p => p.id === productId);
         if (!product) return;
 
-        // Kontrola skladu len ak NIe JE untracked
         if (!product.untracked && product.stock <= 0) {
             alert("Tento produkt je vypredaný!");
             return;
@@ -951,7 +1046,7 @@
                 if (existing) {
                     existing.qty += 1;
                 } else {
-                    room.cart.push({ product: giftProduct, qty: 1, status: 'new' });
+                    room.cart.push({ product: giftProduct, qty: 1, status: 'new', pointsAwarded: 0 });
                 }
 
                 db.collection('rooms').doc(room.id).update({ cart: room.cart });
@@ -979,17 +1074,20 @@
             }
             existing.qty += 1;
         } else {
-            room.cart.push({ product: product, qty: 1, status: 'new' });
+            room.cart.push({ product: product, qty: 1, status: 'new', pointsAwarded: 0 });
         }
 
         db.collection('rooms').doc(room.id).update({ cart: room.cart });
     }
 
+    // UPDATED: AK ODSTRÁNIM ALEBO ZNÍŽIM PRODUKT KTORÝ MAL PRIPÍSANÉ BODY -> BOHUŽIAĽ BODY ODPOČÍTAME
     function updateCartQty(productId, delta, isGiftItem = false, status = 'new') {
         const room = getCurrentRoom();
         const activeCustomerLoyalty = getActiveCustomerLoyalty();
-        const item = room.cart.find(i => i.product.id === productId && !!i.product.isGiftItem === isGiftItem && (i.status || 'new') === status);
-        if (!item) return;
+        const itemIndex = room.cart.findIndex(i => i.product.id === productId && !!i.product.isGiftItem === isGiftItem && (i.status || 'new') === status);
+        if (itemIndex === -1) return;
+
+        const item = room.cart[itemIndex];
 
         if (item.product.isGiftItem && delta > 0) {
             const pointsCost = item.product.pointsCost;
@@ -1007,6 +1105,16 @@
             }
         }
 
+        // AK ZNÍŽIME MNOŽSTVO S PRIPÍSANÝMI BODMI -> ODPOČÍTAŤ BODE!
+        if (delta < 0 && item.pointsAwarded && item.pointsAwarded > 0 && activeCustomerLoyalty) {
+            const pointsPerQty = Math.floor(item.pointsAwarded / item.qty);
+            const pointsToDeduct = Math.min(item.pointsAwarded, pointsPerQty * Math.abs(delta));
+
+            item.pointsAwarded -= pointsToDeduct;
+            const updatedPoints = Math.max(0, (activeCustomerLoyalty.points || 0) - pointsToDeduct);
+            db.collection('cards').doc(activeCustomerLoyalty.id).update({ points: updatedPoints });
+        }
+
         item.qty += delta;
         if (!item.product.untracked && item.qty > item.product.stock) {
             alert("Dosiahnutý limit skladu.");
@@ -1014,7 +1122,7 @@
         }
 
         if (item.qty <= 0) {
-            room.cart = room.cart.filter(i => !(i.product.id === productId && !!i.product.isGiftItem === isGiftItem && (i.status || 'new') === status));
+            room.cart.splice(itemIndex, 1);
         }
 
         db.collection('rooms').doc(room.id).update({ cart: room.cart });
@@ -1026,15 +1134,19 @@
         
         if (room.cart && activeCustomerLoyalty) {
             let pointsToReturn = 0;
+            let pointsToDeduct = 0;
+
             room.cart.forEach(item => {
                 if (item.product.isGiftItem) {
                     pointsToReturn += item.product.pointsCost * item.qty;
                 }
+                if (item.pointsAwarded && item.pointsAwarded > 0) {
+                    pointsToDeduct += item.pointsAwarded;
+                }
             });
-            if (pointsToReturn > 0) {
-                const newPoints = activeCustomerLoyalty.points + pointsToReturn;
-                db.collection('cards').doc(activeCustomerLoyalty.id).update({ points: newPoints });
-            }
+
+            let finalPoints = (activeCustomerLoyalty.points || 0) + pointsToReturn - pointsToDeduct;
+            db.collection('cards').doc(activeCustomerLoyalty.id).update({ points: Math.max(0, finalPoints) });
         }
 
         db.collection('rooms').doc(room.id).update({ cart: [], selectedCardId: null });
@@ -1118,7 +1230,7 @@
         }
     }
 
-    // --- KDS ODOSLANIE + PRIPOČÍTANIE VERNOSTNÝCH BODOV ZA NOVÉ POLOŽKY ---
+    // --- KDS ODOSLANIE + PRIPOČÍTANIE BODOV ---
     function sendToKitchen() {
         const room = getCurrentRoom();
         if (!room.cart || room.cart.length === 0) {
@@ -1140,7 +1252,6 @@
         newItems.forEach(item => {
             newItemsSubtotal += item.product.price * item.qty;
 
-            // Zníženie zo skladu LEN AK NIE JE UNTRACKED
             const p = products.find(prod => prod.id === item.product.id);
             if (p && !p.untracked) {
                 const newStock = p.stock - item.qty;
@@ -1152,11 +1263,17 @@
         let newItemsTotal = newItemsSubtotal - newItemsDiscount;
         const now = new Date();
 
-        // ** PRIPOČÍTANIE VERNOSTNÝCH BODOV ZA ODOSIELANÉ NOVÉ PRODUKTY **
         let pointsMsg = '';
         if (activeCustomerLoyalty && newItemsTotal > 0) {
             const pointsEarned = Math.floor(newItemsTotal);
             const newTotalPoints = (activeCustomerLoyalty.points || 0) + pointsEarned;
+
+            // Zaznamenáme do položky košíka, koľko bodov jej prislúcha pre prípadné odstránenie
+            newItems.forEach(item => {
+                const itemShareRatio = (item.product.price * item.qty) / (newItemsSubtotal || 1);
+                item.pointsAwarded = Math.floor(pointsEarned * itemShareRatio);
+            });
+
             db.collection('cards').doc(activeCustomerLoyalty.id).update({ points: newTotalPoints });
             pointsMsg = ` Zákazník získal +${pointsEarned} bodov!`;
         }
@@ -1297,7 +1414,7 @@
         };
 
         if (!room.cart) room.cart = [];
-        room.cart.push({ product: partialItem, qty: 1, status: 'sent' });
+        room.cart.push({ product: partialItem, qty: 1, status: 'sent', pointsAwarded: 0 });
 
         db.collection('rooms').doc(room.id).update({ cart: room.cart });
 
