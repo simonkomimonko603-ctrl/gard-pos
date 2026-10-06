@@ -67,13 +67,13 @@
         Váš prehliadač nepodporuje prehrávanie videa.
     </video>
     
-    <div class="absolute top-6 left-6 bg-black/60 backdrop-blur-md px-4 py-2 rounded-2xl text-xs text-slate-200 font-bold border border-white/10 pointer-events-none flex items-center gap-3">
+    <div class="absolute top-6 left-6 bg-black/60 backdrop-blur-md px-4 py-2 rounded-2xl text-xs text-slate-200 font-bold border border-white/10 pointer-events-none flex items-center gap-3 z-10">
         <span class="w-2.5 h-2.5 rounded-full bg-red-500 animate-ping"></span>
         <span id="ss-ad-title">Reklama</span>
         <span id="ss-ad-badge" class="bg-indigo-500/30 text-indigo-300 border border-indigo-500/30 px-2 py-0.5 rounded-lg text-[10px]">1/1</span>
     </div>
 
-    <div class="absolute bottom-6 right-6 bg-black/60 backdrop-blur-md px-4 py-2 rounded-xl text-xs text-slate-300 font-bold border border-white/10 pointer-events-none flex items-center gap-2">
+    <div class="absolute bottom-6 right-6 bg-black/60 backdrop-blur-md px-4 py-2 rounded-xl text-xs text-slate-300 font-bold border border-white/10 pointer-events-none flex items-center gap-2 z-10">
         <i class="fa-solid fa-hand-pointer text-indigo-400"></i> Kliknutím alebo pohybom myši ukončíte reklamu
     </div>
 </div>
@@ -337,7 +337,7 @@
                         </button>
 
                         <div class="flex flex-1 gap-2 min-w-[280px]">
-                            <input type="text" id="ss-url-add-input" class="flex-1 p-2 border border-slate-700 bg-slate-950 text-slate-100 rounded-xl text-xs focus:outline-none focus:border-indigo-500" placeholder="Alebo vložte URL adresu videa...">
+                            <input type="text" id="ss-url-add-input" class="flex-1 p-2 border border-slate-700 bg-slate-950 text-slate-100 rounded-xl text-xs focus:outline-none focus:border-indigo-500" placeholder="Alebo vložte Streamable / YouTube / MP4 URL...">
                             <button onclick="addUrlToPlaylist()" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 px-3 py-2 rounded-xl font-bold text-xs transition">
                                 Pridať URL
                             </button>
@@ -533,7 +533,6 @@
     let screensaverTimer = null;
     let currentVideoIndex = 0;
 
-    // FE - Splash Screen bypass fix
     window.addEventListener('DOMContentLoaded', () => {
         runSplash();
         initRealtimeListeners();
@@ -561,6 +560,33 @@
                 }, 200);
             }
         }, 100);
+    }
+
+    // --- DETEKCIA A SPRATANIE URL PRE EMBED (STREAMABLE & YOUTUBE) ---
+    function isEmbedUrl(url) {
+        return url.includes('streamable.com') || url.includes('youtube.com') || url.includes('youtu.be');
+    }
+
+    function getEmbedSrc(url) {
+        if (url.includes('streamable.com')) {
+            const videoId = url.split('/').pop();
+            return `https://streamable.com/e/${videoId}?autoplay=1&nocontrols=1`;
+        }
+        if (url.includes('youtube.com') || url.includes('youtu.be')) {
+            let videoId = '';
+            if (url.includes('youtu.be')) {
+                videoId = url.split('/').pop();
+            } else {
+                try {
+                    const urlParams = new URLSearchParams(new URL(url).search);
+                    videoId = urlParams.get('v');
+                } catch(e) {
+                    videoId = url.split('/').pop();
+                }
+            }
+            return `https://www.youtube.com/embed/${videoId}?autoplay=1&controls=0&mute=1&loop=1`;
+        }
+        return url;
     }
 
     function handleMultipleVideoUpload(event) {
@@ -597,7 +623,7 @@
         if (url) {
             screensaverSettings.playlist.push({
                 id: 'vid_' + Date.now(),
-                name: 'Externé Video URL',
+                name: isEmbedUrl(url) ? 'Web Video (Streamable/YT)' : 'Externé MP4 URL',
                 url: url,
                 muted: true,
                 duration: 15
@@ -705,6 +731,11 @@
             currentVideoIndex = (currentVideoIndex + 1) % screensaverSettings.playlist.length;
             const currentVid = screensaverSettings.playlist[currentVideoIndex];
 
+            if (isEmbedUrl(currentVid.url)) {
+                showScreensaver();
+                return;
+            }
+
             sourceElem.src = currentVid.url;
             videoElem.muted = currentVid.muted;
             videoElem.load();
@@ -732,37 +763,62 @@
         currentVideoIndex = state.index;
         const currentVid = state.video;
 
-        sourceElem.src = currentVid.url;
-        videoElem.muted = currentVid.muted;
-        videoElem.load();
-
         document.getElementById('ss-ad-title').innerText = currentVid.name;
         document.getElementById('ss-ad-badge').innerText = `${currentVideoIndex + 1}/${screensaverSettings.playlist.length}`;
 
         overlay.classList.remove('hidden');
         overlay.classList.add('flex');
 
-        videoElem.onloadedmetadata = function() {
-            if (!currentVid.duration && videoElem.duration) {
-                currentVid.duration = Math.floor(videoElem.duration);
+        if (isEmbedUrl(currentVid.url)) {
+            videoElem.classList.add('hidden');
+
+            let iframeElem = document.getElementById('screensaver-iframe');
+            if (!iframeElem) {
+                iframeElem = document.createElement('iframe');
+                iframeElem.id = 'screensaver-iframe';
+                iframeElem.className = 'w-full h-full border-0 pointer-events-none';
+                iframeElem.allow = 'autoplay; encrypted-media';
+                overlay.insertBefore(iframeElem, overlay.firstChild);
             }
-            videoElem.currentTime = state.seekTime;
+
+            iframeElem.classList.remove('hidden');
+            iframeElem.src = getEmbedSrc(currentVid.url);
+        } else {
+            const iframeElem = document.getElementById('screensaver-iframe');
+            if (iframeElem) iframeElem.classList.add('hidden');
+
+            videoElem.classList.remove('hidden');
+            sourceElem.src = currentVid.url;
+            videoElem.muted = currentVid.muted;
+            videoElem.load();
+
+            videoElem.onloadedmetadata = function() {
+                if (!currentVid.duration && videoElem.duration) {
+                    currentVid.duration = Math.floor(videoElem.duration);
+                }
+                videoElem.currentTime = state.seekTime;
+                videoElem.play().catch(() => {});
+            };
+
+            videoElem.onended = function() {
+                playNextVideo();
+            };
+
             videoElem.play().catch(() => {});
-        };
-
-        videoElem.onended = function() {
-            playNextVideo();
-        };
-
-        videoElem.play().catch(() => {});
+        }
     }
 
     function hideScreensaver() {
         const overlay = document.getElementById('screensaver-overlay');
         const videoElem = document.getElementById('screensaver-video');
+        const iframeElem = document.getElementById('screensaver-iframe');
+
         overlay.classList.add('hidden');
         overlay.classList.remove('flex');
-        videoElem.pause();
+
+        if (videoElem) videoElem.pause();
+        if (iframeElem) iframeElem.src = '';
+
         resetScreensaverTimer();
     }
 
