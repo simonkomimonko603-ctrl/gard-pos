@@ -307,18 +307,25 @@
             <!-- TAB: SKLAD & PRODUKTY & NASTAVENIE SCREENSAVERA -->
             <div id="view-stock" class="h-full hidden flex-col bg-slate-900/60 border border-slate-800 rounded-2xl shadow-2xl p-6 overflow-y-auto">
                 
-                <!-- SEKAE SCREENSAVER NASTAVENIA -->
+                <!-- SEKAE SCREENSAVER NASTAVENIA S TLAČIDLOM NA PRIDAJ SÚBOR -->
                 <div class="bg-slate-950/80 border border-slate-800 rounded-2xl p-4 mb-6 shadow-xl">
                     <h3 class="text-sm font-bold text-slate-200 mb-3 flex items-center gap-2">
                         <i class="fa-solid fa-tv text-indigo-400"></i> Nastavenia Šetriča Obrazovky (Screensaver)
                     </h3>
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
-                        <div>
-                            <label class="block text-xs font-bold text-slate-400 mb-1">Cesta / URL k videu (alebo lokálny súbor):</label>
-                            <input type="text" id="ss-url-input" class="w-full p-2.5 border border-slate-700 bg-slate-900 text-slate-100 rounded-xl text-xs focus:outline-none focus:border-indigo-500" placeholder="napr. video.mp4 alebo https://.../promo.mp4">
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                        <div class="md:col-span-2">
+                            <label class="block text-xs font-bold text-slate-400 mb-1">Výber videa z PC / URL:</label>
+                            <div class="flex gap-2">
+                                <!-- TLAČIDLO PRE PREHLIADAČ SÚBOROV -->
+                                <input type="file" id="ss-file-input" accept="video/*" onchange="handleScreensaverFileSelect(event)" class="hidden">
+                                <button onclick="document.getElementById('ss-file-input').click()" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 px-3 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 transition shrink-0">
+                                    <i class="fa-solid fa-folder-open text-indigo-400"></i> Vybrať video z PC
+                                </button>
+                                <input type="text" id="ss-url-input" class="flex-1 p-2.5 border border-slate-700 bg-slate-900 text-slate-100 rounded-xl text-xs focus:outline-none focus:border-indigo-500" placeholder="Alebo vložte URL...">
+                            </div>
                         </div>
                         <div>
-                            <label class="block text-xs font-bold text-slate-400 mb-1">Čas nečinnosti (sekundy):</label>
+                            <label class="block text-xs font-bold text-slate-400 mb-1">Nečinnosť (sekundy):</label>
                             <input type="number" id="ss-timeout-input" class="w-full p-2.5 border border-slate-700 bg-slate-900 text-slate-100 rounded-xl text-xs focus:outline-none focus:border-indigo-500" placeholder="60">
                         </div>
                         <div class="flex items-center gap-3">
@@ -601,6 +608,17 @@
     let screensaverSettings = { enabled: false, videoUrl: '', timeout: 60 };
     let screensaverTimer = null;
 
+    // ODCHYTENIE VYBRANÉHO SÚBORU Z PC
+    function handleScreensaverFileSelect(event) {
+        const file = event.target.files[0];
+        if (file) {
+            const fileURL = URL.createObjectURL(file);
+            document.getElementById('ss-url-input').value = fileURL;
+            screensaverSettings.videoUrl = fileURL;
+            alert(`Vybraný súbor: ${file.name}`);
+        }
+    }
+
     function resetScreensaverTimer() {
         if (screensaverTimer) clearTimeout(screensaverTimer);
         if (screensaverSettings.enabled && screensaverSettings.timeout > 0 && screensaverSettings.videoUrl) {
@@ -640,7 +658,7 @@
 
         screensaverSettings = { videoUrl: url, timeout: timeout, enabled: enabled };
         db.collection('settings').doc('screensaver').set(screensaverSettings);
-        alert("Nastavenia šetriča boli uložené a synchronizované!");
+        alert("Nastavenia šetriča boli uložené!");
         resetScreensaverTimer();
     }
 
@@ -675,10 +693,18 @@
         // Synchronizácia Šetriča
         db.collection('settings').doc('screensaver').onSnapshot(doc => {
             if (doc.exists) {
-                screensaverSettings = doc.data();
-                document.getElementById('ss-url-input').value = screensaverSettings.videoUrl || '';
-                document.getElementById('ss-timeout-input').value = screensaverSettings.timeout || 60;
-                document.getElementById('ss-enabled-checkbox').checked = !!screensaverSettings.enabled;
+                const data = doc.data();
+                screensaverSettings.timeout = data.timeout || 60;
+                screensaverSettings.enabled = !!data.enabled;
+
+                // Ak z cloudu neprichádza blob URL z PC, prepíšeme cestu
+                if (data.videoUrl && !data.videoUrl.startsWith('blob:')) {
+                    screensaverSettings.videoUrl = data.videoUrl;
+                    document.getElementById('ss-url-input').value = data.videoUrl;
+                }
+
+                document.getElementById('ss-timeout-input').value = screensaverSettings.timeout;
+                document.getElementById('ss-enabled-checkbox').checked = screensaverSettings.enabled;
                 resetScreensaverTimer();
             }
         });
@@ -1080,7 +1106,6 @@
         db.collection('rooms').doc(room.id).update({ cart: room.cart });
     }
 
-    // UPDATED: AK ODSTRÁNIM ALEBO ZNÍŽIM PRODUKT KTORÝ MAL PRIPÍSANÉ BODY -> BOHUŽIAĽ BODY ODPOČÍTAME
     function updateCartQty(productId, delta, isGiftItem = false, status = 'new') {
         const room = getCurrentRoom();
         const activeCustomerLoyalty = getActiveCustomerLoyalty();
@@ -1105,7 +1130,7 @@
             }
         }
 
-        // AK ZNÍŽIME MNOŽSTVO S PRIPÍSANÝMI BODMI -> ODPOČÍTAŤ BODE!
+        // AK ZNÍŽIME MNOŽSTVO S PRIPÍSANÝMI BODMI -> ODPOČÍTAŤ BODY!
         if (delta < 0 && item.pointsAwarded && item.pointsAwarded > 0 && activeCustomerLoyalty) {
             const pointsPerQty = Math.floor(item.pointsAwarded / item.qty);
             const pointsToDeduct = Math.min(item.pointsAwarded, pointsPerQty * Math.abs(delta));
@@ -1268,7 +1293,6 @@
             const pointsEarned = Math.floor(newItemsTotal);
             const newTotalPoints = (activeCustomerLoyalty.points || 0) + pointsEarned;
 
-            // Zaznamenáme do položky košíka, koľko bodov jej prislúcha pre prípadné odstránenie
             newItems.forEach(item => {
                 const itemShareRatio = (item.product.price * item.qty) / (newItemsSubtotal || 1);
                 item.pointsAwarded = Math.floor(pointsEarned * itemShareRatio);
