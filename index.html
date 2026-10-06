@@ -26,6 +26,19 @@
             50% { transform: scale(1.08); opacity: 0.8; }
         }
         .splash-logo { animation: pulseGlow 2s infinite ease-in-out; }
+        
+        /* Animácie pre šetrič */
+        .video-fade {
+            transition: opacity 0.6s ease-in-out, transform 0.6s ease-in-out;
+        }
+        .video-hidden {
+            opacity: 0;
+            transform: scale(0.98);
+        }
+        .video-visible {
+            opacity: 1;
+            transform: scale(1);
+        }
     </style>
 </head>
 <body class="h-screen flex flex-col font-sans overflow-hidden bg-slate-950 text-slate-100 select-none" onmousemove="resetScreensaverTimer()" onclick="resetScreensaverTimer()" onkeydown="resetScreensaverTimer()">
@@ -44,19 +57,26 @@
       measurementId: "G-S1H21HW859"
     };
 
-    // Inicializácia pre Compat verzii
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 </script>
 
-<!-- SCREENSAVER OVERLAY -->
-<div id="screensaver-overlay" onclick="hideScreensaver()" class="fixed inset-0 z-50 bg-black hidden flex-col items-center justify-center cursor-pointer">
-    <video id="screensaver-video" class="w-full h-full object-cover" autoplay loop muted playsinline>
+<!-- SCREENSAVER OVERLAY (REKLAMNÝ PANEL) -->
+<div id="screensaver-overlay" onclick="hideScreensaver()" class="fixed inset-0 z-50 bg-black hidden flex-col items-center justify-center cursor-pointer overflow-hidden">
+    <video id="screensaver-video" class="w-full h-full object-cover video-fade video-visible" autoplay playsinline>
         <source id="screensaver-video-source" src="" type="video/mp4">
         Váš prehliadač nepodporuje prehrávanie videa.
     </video>
-    <div class="absolute bottom-6 right-6 bg-black/60 backdrop-blur-md px-4 py-2 rounded-xl text-xs text-slate-300 font-bold border border-white/10 pointer-events-none">
-        Kliknutím alebo pohybom myši ukončíte šetrič
+    
+    <!-- Animovaný indikátor reklamy -->
+    <div class="absolute top-6 left-6 bg-black/60 backdrop-blur-md px-4 py-2 rounded-2xl text-xs text-slate-200 font-bold border border-white/10 pointer-events-none flex items-center gap-3">
+        <span class="w-2.5 h-2.5 rounded-full bg-red-500 animate-ping"></span>
+        <span id="ss-ad-title">Reklama</span>
+        <span id="ss-ad-badge" class="bg-indigo-500/30 text-indigo-300 border border-indigo-500/30 px-2 py-0.5 rounded-lg text-[10px]">1/1</span>
+    </div>
+
+    <div class="absolute bottom-6 right-6 bg-black/60 backdrop-blur-md px-4 py-2 rounded-xl text-xs text-slate-300 font-bold border border-white/10 pointer-events-none flex items-center gap-2">
+        <i class="fa-solid fa-hand-pointer text-indigo-400"></i> Kliknutím alebo pohybom myši ukončíte reklamu
     </div>
 </div>
 
@@ -304,39 +324,48 @@
                 </table>
             </div>
 
-            <!-- TAB: SKLAD & PRODUKTY & NASTAVENIE SCREENSAVERA -->
+            <!-- TAB: SKLAD & PRODUKTY & NASTAVENIE SCREENSAVERA (PLAYLISTU) -->
             <div id="view-stock" class="h-full hidden flex-col bg-slate-900/60 border border-slate-800 rounded-2xl shadow-2xl p-6 overflow-y-auto">
                 
-                <!-- SEKAE SCREENSAVER NASTAVENIA S TLAČIDLOM NA PRIDAJ SÚBOR -->
-                <div class="bg-slate-950/80 border border-slate-800 rounded-2xl p-4 mb-6 shadow-xl">
-                    <h3 class="text-sm font-bold text-slate-200 mb-3 flex items-center gap-2">
-                        <i class="fa-solid fa-tv text-indigo-400"></i> Nastavenia Šetriča Obrazovky (Screensaver)
-                    </h3>
-                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-                        <div class="md:col-span-2">
-                            <label class="block text-xs font-bold text-slate-400 mb-1">Výber videa z PC / URL:</label>
-                            <div class="flex gap-2">
-                                <!-- TLAČIDLO PRE PREHLIADAČ SÚBOROV -->
-                                <input type="file" id="ss-file-input" accept="video/*" onchange="handleScreensaverFileSelect(event)" class="hidden">
-                                <button onclick="document.getElementById('ss-file-input').click()" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 px-3 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 transition shrink-0">
-                                    <i class="fa-solid fa-folder-open text-indigo-400"></i> Vybrať video z PC
-                                </button>
-                                <input type="text" id="ss-url-input" class="flex-1 p-2.5 border border-slate-700 bg-slate-900 text-slate-100 rounded-xl text-xs focus:outline-none focus:border-indigo-500" placeholder="Alebo vložte URL...">
+                <!-- SEKCIÁ NASTAVENIA REKLAMNÉHO SCREENSAVERA (PLAYLIST) -->
+                <div class="bg-slate-950/80 border border-slate-800 rounded-2xl p-5 mb-6 shadow-xl">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-sm font-bold text-slate-200 flex items-center gap-2">
+                            <i class="fa-solid fa-tv text-indigo-400"></i> Reklamný Šetrič Obrazovky (Playlist Videí)
+                        </h3>
+                        <div class="flex items-center gap-4">
+                            <div class="flex items-center gap-2">
+                                <label class="text-xs font-bold text-slate-400">Spustiť po (sek.):</label>
+                                <input type="number" id="ss-timeout-input" class="w-20 p-2 border border-slate-700 bg-slate-900 text-slate-100 rounded-xl text-xs text-center focus:outline-none focus:border-indigo-500" placeholder="10">
                             </div>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-slate-400 mb-1">Nečinnosť (sekundy):</label>
-                            <input type="number" id="ss-timeout-input" class="w-full p-2.5 border border-slate-700 bg-slate-900 text-slate-100 rounded-xl text-xs focus:outline-none focus:border-indigo-500" placeholder="60">
-                        </div>
-                        <div class="flex items-center gap-3">
-                            <label class="flex items-center gap-2 cursor-pointer">
+                            <label class="flex items-center gap-2 cursor-pointer bg-slate-900 p-2 rounded-xl border border-slate-800">
                                 <input type="checkbox" id="ss-enabled-checkbox" class="w-4 h-4 accent-indigo-500 rounded">
                                 <span class="text-xs font-bold text-slate-300">Zapnúť Šetrič</span>
                             </label>
-                            <button onclick="saveScreensaverSettings()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2.5 rounded-xl font-bold text-xs transition">
-                                Uložiť Šetrič
+                            <button onclick="saveScreensaverSettings()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-xl font-bold text-xs transition">
+                                <i class="fa-solid fa-floppy-disk"></i> Uložiť
                             </button>
                         </div>
+                    </div>
+
+                    <!-- Pridávanie do playlistu -->
+                    <div class="bg-slate-900/80 border border-slate-800 p-3 rounded-2xl mb-4 flex flex-wrap gap-2 items-center">
+                        <input type="file" id="ss-file-input" accept="video/*" multiple onchange="handleMultipleVideoUpload(event)" class="hidden">
+                        <button type="button" onclick="document.getElementById('ss-file-input').click()" class="bg-indigo-600/20 hover:bg-indigo-600/40 border border-indigo-500/40 text-indigo-300 px-3.5 py-2 rounded-xl font-bold text-xs flex items-center gap-2 transition">
+                            <i class="fa-solid fa-folder-open"></i> + Nahrať video z PC
+                        </button>
+
+                        <div class="flex flex-1 gap-2 min-w-[280px]">
+                            <input type="text" id="ss-url-add-input" class="flex-1 p-2 border border-slate-700 bg-slate-950 text-slate-100 rounded-xl text-xs focus:outline-none focus:border-indigo-500" placeholder="Alebo vložte URL adresu videa...">
+                            <button onclick="addUrlToPlaylist()" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 px-3 py-2 rounded-xl font-bold text-xs transition">
+                                Pridať URL
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Zoznam videí v playliste -->
+                    <div class="space-y-2 max-h-56 overflow-y-auto pr-1" id="ss-playlist-container">
+                        <div class="text-center text-xs text-slate-500 py-4">Žiadne videá v playliste. Nahrajte video.</div>
                     </div>
                 </div>
 
@@ -604,61 +633,228 @@
     let barChart = null;
     let pieChart = null;
 
-    // --- SCREENSAVER LOGIC ---
-    let screensaverSettings = { enabled: false, videoUrl: '', timeout: 60 };
+    // --- ADVANCED SYNCHRONIZED SCREENSAVER PLAYLIST LOGIC ---
+    let screensaverSettings = { enabled: false, timeout: 10, playlist: [] };
     let screensaverTimer = null;
+    let currentVideoIndex = 0;
 
-    // ODCHYTENIE VYBRANÉHO SÚBORU Z PC
-    function handleScreensaverFileSelect(event) {
-        const file = event.target.files[0];
-        if (file) {
-            const fileURL = URL.createObjectURL(file);
-            document.getElementById('ss-url-input').value = fileURL;
-            screensaverSettings.videoUrl = fileURL;
-            alert(`Vybraný súbor: ${file.name}`);
+    function handleMultipleVideoUpload(event) {
+        const files = Array.from(event.target.files);
+        if (files.length === 0) return;
+
+        let loadedCount = 0;
+        files.forEach(file => {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const tempVideo = document.createElement('video');
+                tempVideo.src = e.target.result;
+                tempVideo.onloadedmetadata = function() {
+                    screensaverSettings.playlist.push({
+                        id: 'vid_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+                        name: file.name,
+                        url: e.target.result,
+                        muted: true,
+                        duration: Math.floor(tempVideo.duration) || 15
+                    });
+                    loadedCount++;
+                    if (loadedCount === files.length) {
+                        renderPlaylistUI();
+                    }
+                };
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+
+    function addUrlToPlaylist() {
+        const input = document.getElementById('ss-url-add-input');
+        const url = input.value.trim();
+        if (url) {
+            screensaverSettings.playlist.push({
+                id: 'vid_' + Date.now(),
+                name: 'Externé Video URL',
+                url: url,
+                muted: true,
+                duration: 15
+            });
+            input.value = '';
+            renderPlaylistUI();
         }
+    }
+
+    function removeVideoFromPlaylist(index) {
+        screensaverSettings.playlist.splice(index, 1);
+        renderPlaylistUI();
+    }
+
+    function moveVideoInPlaylist(index, direction) {
+        const targetIndex = index + direction;
+        if (targetIndex < 0 || targetIndex >= screensaverSettings.playlist.length) return;
+        const temp = screensaverSettings.playlist[index];
+        screensaverSettings.playlist[index] = screensaverSettings.playlist[targetIndex];
+        screensaverSettings.playlist[targetIndex] = temp;
+        renderPlaylistUI();
+    }
+
+    function toggleVideoAudio(index) {
+        screensaverSettings.playlist[index].muted = !screensaverSettings.playlist[index].muted;
+        renderPlaylistUI();
+    }
+
+    function renderPlaylistUI() {
+        const container = document.getElementById('ss-playlist-container');
+        if (!screensaverSettings.playlist || screensaverSettings.playlist.length === 0) {
+            container.innerHTML = `<div class="text-center text-xs text-slate-500 py-4">Žiadne videá v playliste. Nahrajte video.</div>`;
+            return;
+        }
+
+        container.innerHTML = screensaverSettings.playlist.map((vid, idx) => `
+            <div class="flex items-center justify-between bg-slate-950 p-2.5 rounded-xl border border-slate-800 text-xs">
+                <div class="flex items-center gap-3 overflow-hidden flex-1">
+                    <span class="font-bold text-slate-500 font-mono w-4">${idx + 1}.</span>
+                    <i class="fa-solid fa-file-video text-indigo-400 text-sm"></i>
+                    <span class="font-bold text-slate-200 truncate max-w-[200px] sm:max-w-xs">${vid.name}</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button type="button" onclick="toggleVideoAudio(${idx})" class="px-2.5 py-1 rounded-lg border font-bold ${vid.muted ? 'bg-slate-900 border-slate-700 text-slate-400' : 'bg-emerald-500/20 border-emerald-500/40 text-emerald-400'} transition flex items-center gap-1.5">
+                        <i class="fa-solid ${vid.muted ? 'fa-volume-xmark' : 'fa-volume-high'}"></i> ${vid.muted ? 'Bez zvuku' : 'Hlas zapnutý'}
+                    </button>
+                    <button type="button" onclick="moveVideoInPlaylist(${idx}, -1)" ${idx === 0 ? 'disabled class="opacity-30 p-1 text-slate-600"' : 'class="p-1 text-slate-400 hover:text-slate-200"'}>
+                        <i class="fa-solid fa-arrow-up"></i>
+                    </button>
+                    <button type="button" onclick="moveVideoInPlaylist(${idx}, 1)" ${idx === screensaverSettings.playlist.length - 1 ? 'disabled class="opacity-30 p-1 text-slate-600"' : 'class="p-1 text-slate-400 hover:text-slate-200"'}>
+                        <i class="fa-solid fa-arrow-down"></i>
+                    </button>
+                    <button type="button" onclick="removeVideoFromPlaylist(${idx})" class="p-1 text-rose-400 hover:text-rose-300 ml-1">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function getPlaylistTotalDuration() {
+        if (!screensaverSettings.playlist || screensaverSettings.playlist.length === 0) return 0;
+        return screensaverSettings.playlist.reduce((acc, vid) => acc + (vid.duration || 15), 0);
+    }
+
+    function getSynchronizedVideoState() {
+        const totalDuration = getPlaylistTotalDuration();
+        if (totalDuration === 0) return null;
+
+        const nowInSeconds = Math.floor(Date.now() / 1000);
+        let currentCycleTime = nowInSeconds % totalDuration;
+
+        for (let i = 0; i < screensaverSettings.playlist.length; i++) {
+            const vid = screensaverSettings.playlist[i];
+            const vidDuration = vid.duration || 15;
+            if (currentCycleTime < vidDuration) {
+                return {
+                    index: i,
+                    video: vid,
+                    seekTime: currentCycleTime
+                };
+            }
+            currentCycleTime -= vidDuration;
+        }
+        return { index: 0, video: screensaverSettings.playlist[0], seekTime: 0 };
     }
 
     function resetScreensaverTimer() {
         if (screensaverTimer) clearTimeout(screensaverTimer);
-        if (screensaverSettings.enabled && screensaverSettings.timeout > 0 && screensaverSettings.videoUrl) {
+        if (screensaverSettings.enabled && screensaverSettings.timeout > 0 && screensaverSettings.playlist && screensaverSettings.playlist.length > 0) {
             screensaverTimer = setTimeout(showScreensaver, screensaverSettings.timeout * 1000);
         }
     }
 
-    function showScreensaver() {
-        if (!screensaverSettings.enabled || !screensaverSettings.videoUrl) return;
-        const overlay = document.getElementById('screensaver-overlay');
-        const video = document.getElementById('screensaver-video');
-        const source = document.getElementById('screensaver-video-source');
+    function playNextVideo() {
+        if (!screensaverSettings.playlist || screensaverSettings.playlist.length === 0) return;
 
-        if (source.src !== screensaverSettings.videoUrl) {
-            source.src = screensaverSettings.videoUrl;
-            video.load();
-        }
+        const videoElem = document.getElementById('screensaver-video');
+        const sourceElem = document.getElementById('screensaver-video-source');
+
+        videoElem.classList.remove('video-visible');
+        videoElem.classList.add('video-hidden');
+
+        setTimeout(() => {
+            currentVideoIndex = (currentVideoIndex + 1) % screensaverSettings.playlist.length;
+            const currentVid = screensaverSettings.playlist[currentVideoIndex];
+
+            sourceElem.src = currentVid.url;
+            videoElem.muted = currentVid.muted;
+            videoElem.load();
+
+            document.getElementById('ss-ad-title').innerText = currentVid.name;
+            document.getElementById('ss-ad-badge').innerText = `${currentVideoIndex + 1}/${screensaverSettings.playlist.length}`;
+
+            videoElem.play().catch(() => {});
+
+            videoElem.classList.remove('video-hidden');
+            videoElem.classList.add('video-visible');
+        }, 500);
+    }
+
+    function showScreensaver() {
+        if (!screensaverSettings.enabled || !screensaverSettings.playlist || screensaverSettings.playlist.length === 0) return;
+
+        const overlay = document.getElementById('screensaver-overlay');
+        const videoElem = document.getElementById('screensaver-video');
+        const sourceElem = document.getElementById('screensaver-video-source');
+
+        const state = getSynchronizedVideoState();
+        if (!state) return;
+
+        currentVideoIndex = state.index;
+        const currentVid = state.video;
+
+        sourceElem.src = currentVid.url;
+        videoElem.muted = currentVid.muted;
+        videoElem.load();
+
+        document.getElementById('ss-ad-title').innerText = currentVid.name;
+        document.getElementById('ss-ad-badge').innerText = `${currentVideoIndex + 1}/${screensaverSettings.playlist.length}`;
 
         overlay.classList.remove('hidden');
         overlay.classList.add('flex');
-        video.play().catch(() => {});
+
+        videoElem.onloadedmetadata = function() {
+            if (!currentVid.duration && videoElem.duration) {
+                currentVid.duration = Math.floor(videoElem.duration);
+            }
+            videoElem.currentTime = state.seekTime;
+            videoElem.play().catch(() => {});
+        };
+
+        videoElem.onended = function() {
+            playNextVideo();
+        };
+
+        videoElem.play().catch(() => {});
     }
 
     function hideScreensaver() {
         const overlay = document.getElementById('screensaver-overlay');
-        const video = document.getElementById('screensaver-video');
+        const videoElem = document.getElementById('screensaver-video');
         overlay.classList.add('hidden');
         overlay.classList.remove('flex');
-        video.pause();
+        videoElem.pause();
         resetScreensaverTimer();
     }
 
     function saveScreensaverSettings() {
-        const url = document.getElementById('ss-url-input').value.trim();
-        const timeout = parseInt(document.getElementById('ss-timeout-input').value) || 60;
+        const timeout = parseInt(document.getElementById('ss-timeout-input').value) || 10;
         const enabled = document.getElementById('ss-enabled-checkbox').checked;
 
-        screensaverSettings = { videoUrl: url, timeout: timeout, enabled: enabled };
-        db.collection('settings').doc('screensaver').set(screensaverSettings);
-        alert("Nastavenia šetriča boli uložené!");
+        screensaverSettings.timeout = timeout;
+        screensaverSettings.enabled = enabled;
+
+        db.collection('settings').doc('screensaver').set({
+            playlist: screensaverSettings.playlist,
+            timeout: screensaverSettings.timeout,
+            enabled: screensaverSettings.enabled
+        });
+
+        alert("Nastavenia reklamného šetriča boli uložené a synchronizované!");
         resetScreensaverTimer();
     }
 
@@ -690,26 +886,20 @@
 
     // --- FIRESTORE REALTIME LISTENERS ---
     function initRealtimeListeners() {
-        // Synchronizácia Šetriča
         db.collection('settings').doc('screensaver').onSnapshot(doc => {
             if (doc.exists) {
                 const data = doc.data();
-                screensaverSettings.timeout = data.timeout || 60;
+                screensaverSettings.timeout = data.timeout || 10;
                 screensaverSettings.enabled = !!data.enabled;
-
-                // Ak z cloudu neprichádza blob URL z PC, prepíšeme cestu
-                if (data.videoUrl && !data.videoUrl.startsWith('blob:')) {
-                    screensaverSettings.videoUrl = data.videoUrl;
-                    document.getElementById('ss-url-input').value = data.videoUrl;
-                }
+                screensaverSettings.playlist = data.playlist || [];
 
                 document.getElementById('ss-timeout-input').value = screensaverSettings.timeout;
                 document.getElementById('ss-enabled-checkbox').checked = screensaverSettings.enabled;
+                renderPlaylistUI();
                 resetScreensaverTimer();
             }
         });
 
-        // Synchronizácia Kategórií
         db.collection('settings').doc('categories').onSnapshot(doc => {
             if(doc.exists && doc.data().list) {
                 categoriesList = doc.data().list;
@@ -719,7 +909,6 @@
             renderCategories();
         });
 
-        // Synchronizácia Produktov
         db.collection('products').onSnapshot(snapshot => {
             products = [];
             snapshot.forEach(doc => {
@@ -730,7 +919,6 @@
             renderStock();
         });
 
-        // Synchronizácia Izieb/Stolov a ich Košíkov
         db.collection('rooms').onSnapshot(snapshot => {
             rooms = [];
             snapshot.forEach(doc => {
@@ -744,7 +932,6 @@
             }
         });
 
-        // Synchronizácia KDS Transakcií
         db.collection('transactions').onSnapshot(snapshot => {
             kdsTransactions = [];
             snapshot.forEach(doc => {
@@ -754,7 +941,6 @@
             if(barChart) updateAnalyticsAndCharts();
         });
 
-        // Synchronizácia Vernostných kariet
         db.collection('cards').onSnapshot(snapshot => {
             loyaltyCards = [];
             snapshot.forEach(doc => {
@@ -1130,7 +1316,6 @@
             }
         }
 
-        // AK ZNÍŽIME MNOŽSTVO S PRIPÍSANÝMI BODMI -> ODPOČÍTAŤ BODY!
         if (delta < 0 && item.pointsAwarded && item.pointsAwarded > 0 && activeCustomerLoyalty) {
             const pointsPerQty = Math.floor(item.pointsAwarded / item.qty);
             const pointsToDeduct = Math.min(item.pointsAwarded, pointsPerQty * Math.abs(delta));
@@ -1208,8 +1393,7 @@
                 <div class="flex justify-between items-center bg-slate-950/60 border border-slate-800 p-3 rounded-xl text-sm mb-2">
                     <div class="flex-1">
                         <div class="font-bold text-slate-200 flex items-center gap-1.5 flex-wrap">
-                            <span>${item.product.name}</span>
-                            ${isGift ? '<span class="text-[10px] bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded font-bold">DARČEK</span>' : ''}
+                            <span>${item.product.name}</span>${isGift ? '<span class="text-[10px] bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded font-bold">DARČEK</span>' : ''}
                             ${isSent 
                                 ? '<span class="text-[10px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-1.5 py-0.5 rounded font-bold uppercase"><i class="fa-solid fa-check"></i> Odoslané</span>' 
                                 : '<span class="text-[10px] bg-amber-500/20 text-amber-300 border border-amber-500/30 px-1.5 py-0.5 rounded font-bold uppercase"><i class="fa-solid fa-clock"></i> Nové</span>'
@@ -1684,7 +1868,7 @@
         const room = getCurrentRoom();
         
         select.innerHTML = '<option value="">-- Bez karty --</option>' + 
-            loyaltyCards.map(c => `<option value="${c.id}">${c.name} (${c.code}) - ${c.points}b</option>`).join('');
+            loyaltyCards.map(c => `<option value="${c.id}">${c.name} (${c.code}) -${c.points}b</option>`).join('');
         
         select.value = room.selectedCardId || "";
     }
@@ -1697,70 +1881,4 @@
         }
         tbody.innerHTML = loyaltyCards.map(c => `
             <tr class="border-b border-slate-800">
-                <td class="p-4 font-bold text-slate-200">${c.name}</td>
-                <td class="p-4 text-slate-400 font-mono text-xs">${c.code}</td>
-                <td class="p-4 text-amber-400 font-bold">${c.points} b</td>
-                <td class="p-4 text-emerald-400 font-bold">${c.discount}%</td>
-                <td class="p-4 text-right">
-                    <button onclick="deleteCard('${c.id}')" class="text-rose-400 hover:text-rose-300 text-xs bg-rose-500/10 p-2 rounded-lg border border-rose-500/20"><i class="fa-solid fa-trash"></i></button>
-                </td>
-            </tr>
-        `).join('');
-        renderLoyaltyOptions();
-    }
-
-    function openCardModal() {
-        document.getElementById('card-name-input').value = '';
-        document.getElementById('card-code-input').value = '';
-        document.getElementById('card-points-input').value = '0';
-        document.getElementById('card-discount-input').value = '0';
-        document.getElementById('card-modal').classList.remove('hidden');
-        document.getElementById('card-modal').classList.add('flex');
-    }
-
-    function closeCardModal() {
-        document.getElementById('card-modal').classList.add('hidden');
-        document.getElementById('card-modal').classList.remove('flex');
-    }
-
-    function saveCard() {
-        const name = document.getElementById('card-name-input').value.trim();
-        const code = document.getElementById('card-code-input').value.trim();
-        const points = parseInt(document.getElementById('card-points-input').value) || 0;
-        const discount = parseFloat(document.getElementById('card-discount-input').value) || 0;
-
-        if (name && code) {
-            db.collection('cards').add({ name, code, points, discount });
-            closeCardModal();
-        }
-    }
-
-    function deleteCard(id) {
-        if (confirm("Naozaj chcete vymazať túto kartu?")) {
-            db.collection('cards').doc(id).delete();
-        }
-    }
-
-    function renderStock() {
-        const tbody = document.getElementById('stock-table-body');
-        if (products.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-slate-500">Žiadne produkty na sklade</td></tr>`;
-            return;
-        }
-        tbody.innerHTML = products.map(p => `
-            <tr class="border-b border-slate-800">
-                <td class="p-4 font-bold text-slate-200">${p.name}</td>
-                <td class="p-4 text-slate-400 text-xs">${p.category}</td>
-                <td class="p-4 text-emerald-400 font-bold">${parseFloat(p.price).toFixed(2)} €</td>
-                <td class="p-4 text-amber-400 font-bold">${p.isGift ? `${p.giftPoints || Math.round(p.price)} b` : '-'}</td>
-                <td class="p-4 font-bold ${p.untracked ? 'text-indigo-400' : (p.stock <= 10 ? 'text-rose-400' : 'text-slate-300')}">${p.untracked ? '-- (Netrackované)' : `${p.stock}${p.unit}`}</td>
-                <td class="p-4 text-right space-x-2">
-                    <button onclick="openProductModal('${p.id}')" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 p-2 rounded-lg border border-slate-700"><i class="fa-solid fa-pen"></i></button>
-                    <button onclick="deleteProduct('${p.id}')" class="text-rose-400 hover:text-rose-300 text-xs bg-rose-500/10 p-2 rounded-lg border border-rose-500/20"><i class="fa-solid fa-trash"></i></button>
-                </td>
-            </tr>
-        `).join('');
-    }
-</script>
-</body>
-</html>
+                <td class="p-4 font-bold text
