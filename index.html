@@ -449,6 +449,12 @@
                 </div>
             </div>
 
+            <!-- NETRACKOVAŤ CHECKBOX -->
+            <div class="bg-slate-950/60 p-3 border border-slate-800 rounded-2xl flex items-center gap-2">
+                <input type="checkbox" id="prod-untracked-checkbox" onchange="toggleUntrackedInput()" class="w-4 h-4 accent-indigo-500 rounded cursor-pointer">
+                <label for="prod-untracked-checkbox" class="text-xs font-bold text-indigo-400 cursor-pointer flex items-center gap-1.5"><i class="fa-solid fa-infinity"></i> Netrackovať (Neevidovať na sklade)</label>
+            </div>
+
             <!-- NASTAVENIE DARČEKA -->
             <div class="bg-slate-950/60 p-3.5 border border-slate-800 rounded-2xl space-y-2">
                 <div class="flex items-center gap-2">
@@ -461,7 +467,7 @@
                 </div>
             </div>
 
-            <div class="grid grid-cols-2 gap-3">
+            <div id="stock-fields-container" class="grid grid-cols-2 gap-3">
                 <div>
                     <label class="block text-xs font-bold text-slate-400 mb-1">Sklad (m / ks):</label>
                     <input type="number" id="prod-stock-input" class="w-full p-3 border border-slate-700 bg-slate-950 text-slate-100 rounded-xl text-sm focus:outline-none focus:border-emerald-500" placeholder="100">
@@ -777,7 +783,7 @@
         }
     }
 
-    // --- PRODUCTS DISPLAY & DARČEKY LOGIC ---
+    // --- PRODUCTS DISPLAY & NETRACKOVAŤ / DARČEKY LOGIC ---
     function renderProducts() {
         const grid = document.getElementById('products-grid');
         const filtered = selectedCategory === 'All' ? products : products.filter(p => p.category === selectedCategory);
@@ -785,6 +791,9 @@
         grid.innerHTML = filtered.map(p => {
             const isGift = p.isGift || (p.category === 'Darčeky');
             const giftPointsCost = p.giftPoints || Math.round(p.price);
+
+            // AK JE UNTRACKED, ZOBRAZÍ `--`
+            const stockDisplay = p.untracked ? '<span class="text-indigo-400 font-bold">--</span>' : `<span class="${p.stock <= 10 ? 'text-rose-400 font-bold' : 'text-slate-300'}">${p.stock}${p.unit}</span>`;
 
             if (isGift) {
                 return `
@@ -795,7 +804,7 @@
                                 <div class="font-bold text-slate-100 text-base mb-1 group-hover:text-amber-400 transition">${p.name}</div>
                                 <span class="text-[10px] bg-amber-500/20 text-amber-400 font-bold px-1.5 py-0.5 rounded border border-amber-500/30">DARČEK</span>
                             </div>
-                            <div class="text-xs text-slate-400">Sklad: <span class="${p.stock <= 10 ? 'text-rose-400 font-bold' : 'text-slate-300'}">${p.stock}${p.unit}</span></div>
+                            <div class="text-xs text-slate-400">Sklad: ${stockDisplay}</div>
                         </div>
                         <div class="mt-4 flex justify-between items-center">
                             <div class="flex flex-col">
@@ -816,7 +825,7 @@
                 <div onclick="addToCart('${p.id}')" class="bg-slate-950/80 border border-slate-800 hover:border-emerald-500/50 rounded-2xl p-4 cursor-pointer transition flex flex-col justify-between shadow-xl group">
                     <div>
                         <div class="font-bold text-slate-100 text-base mb-1 group-hover:text-emerald-400 transition">${p.name}</div>
-                        <div class="text-xs text-slate-400">Sklad: <span class="${p.stock <= 10 ? 'text-rose-400 font-bold' : 'text-slate-300'}">${p.stock}${p.unit}</span></div>
+                        <div class="text-xs text-slate-400">Sklad: ${stockDisplay}</div>
                     </div>
                     <div class="mt-4 flex justify-between items-center">
                         <span class="text-emerald-400 font-black text-lg">${parseFloat(p.price).toFixed(2)} €</span>
@@ -855,7 +864,8 @@
             name: name,
             price: price,
             unit: 'ks',
-            stock: 999
+            stock: 999,
+            untracked: true
         };
 
         if(!room.cart) room.cart = [];
@@ -888,7 +898,8 @@
         const product = products.find(p => p.id === productId);
         if (!product) return;
 
-        if (product.stock <= 0) {
+        // Kontrola skladu len ak NIe JE untracked
+        if (!product.untracked && product.stock <= 0) {
             alert("Tento produkt je vypredaný!");
             return;
         }
@@ -962,7 +973,7 @@
         
         const existing = room.cart.find(item => item.product.id === product.id && !item.product.isGiftItem && (item.status || 'new') === 'new');
         if (existing) {
-            if (existing.qty + 1 > product.stock) {
+            if (!product.untracked && existing.qty + 1 > product.stock) {
                 alert("Nemožno pridať viac, než je na sklade.");
                 return;
             }
@@ -997,7 +1008,7 @@
         }
 
         item.qty += delta;
-        if (item.qty > item.product.stock) {
+        if (!item.product.untracked && item.qty > item.product.stock) {
             alert("Dosiahnutý limit skladu.");
             item.qty = item.product.stock;
         }
@@ -1033,7 +1044,6 @@
         const room = getCurrentRoom();
         const container = document.getElementById('order-items');
 
-        // Nastavíme vybranú kartu vo výběrovom poli (Select) podľa izby
         const customerSelect = document.getElementById('cart-customer-select');
         if (customerSelect) {
             customerSelect.value = room.selectedCardId || "";
@@ -1093,8 +1103,6 @@
     function applyCustomerLoyalty() {
         const cardId = document.getElementById('cart-customer-select').value;
         const room = getCurrentRoom();
-        
-        // UKLADÁME VYBRANÚ KARTU PRIAMO K IZBE V DATABASE!
         db.collection('rooms').doc(room.id).update({ selectedCardId: cardId || null });
     }
 
@@ -1110,7 +1118,7 @@
         }
     }
 
-    // --- KDS ODOSLANIE ---
+    // --- KDS ODOSLANIE + PRIPOČÍTANIE VERNOSTNÝCH BODOV ZA NOVÉ POLOŽKY ---
     function sendToKitchen() {
         const room = getCurrentRoom();
         if (!room.cart || room.cart.length === 0) {
@@ -1132,8 +1140,9 @@
         newItems.forEach(item => {
             newItemsSubtotal += item.product.price * item.qty;
 
+            // Zníženie zo skladu LEN AK NIE JE UNTRACKED
             const p = products.find(prod => prod.id === item.product.id);
-            if (p) {
+            if (p && !p.untracked) {
                 const newStock = p.stock - item.qty;
                 db.collection('products').doc(p.id).update({ stock: newStock });
             }
@@ -1142,6 +1151,15 @@
         let newItemsDiscount = (newItemsSubtotal * discountPct) / 100;
         let newItemsTotal = newItemsSubtotal - newItemsDiscount;
         const now = new Date();
+
+        // ** PRIPOČÍTANIE VERNOSTNÝCH BODOV ZA ODOSIELANÉ NOVÉ PRODUKTY **
+        let pointsMsg = '';
+        if (activeCustomerLoyalty && newItemsTotal > 0) {
+            const pointsEarned = Math.floor(newItemsTotal);
+            const newTotalPoints = (activeCustomerLoyalty.points || 0) + pointsEarned;
+            db.collection('cards').doc(activeCustomerLoyalty.id).update({ points: newTotalPoints });
+            pointsMsg = ` Zákazník získal +${pointsEarned} bodov!`;
+        }
 
         const kdsOrder = {
             timestamp: now.toISOString(),
@@ -1172,7 +1190,7 @@
 
         db.collection('rooms').doc(room.id).update({ cart: room.cart });
 
-        alert(`Odoslané ${newItems.length} nové položky na KDS! Suma nového balíka po zľave: ${newItemsTotal.toFixed(2)} €`);
+        alert(`Odoslané ${newItems.length} nové položky na KDS! Suma balíka: ${newItemsTotal.toFixed(2)} €.${pointsMsg}`);
     }
 
     function renderTransactionsTable() {
@@ -1259,33 +1277,30 @@
         document.getElementById('cash-change-val').innerText = `${Math.max(0, change).toFixed(2)} €`;
     }
 
-    // ČIASTOČNÁ PLATBA - UKLADÁ SA DO FIREBASE DB!
     function submitPartialPayment(method) {
         const room = getCurrentRoom();
         const total = parseFloat(document.getElementById('total-val').innerText);
         const partial = parseFloat(document.getElementById('partial-amount-input').value) || 0;
 
         if (partial <= 0 || partial >= total) {
-            alert("Zadajte platnú čiastočnú sumu (musí byť menšia ako celkový účet).");
+            alert("Zadajte platnú čiastočnú sumu (menšiu ako celkový účet).");
             return;
         }
 
-        // Pridáme čiastočnú platbu ako odčítaciu položku priamo na účet
         const partialItem = {
             id: 'partial_' + Date.now(),
             name: `Čiastočná úhrada (${method})`,
             price: -partial,
             unit: 'ks',
-            stock: 999
+            stock: 999,
+            untracked: true
         };
 
         if (!room.cart) room.cart = [];
         room.cart.push({ product: partialItem, qty: 1, status: 'sent' });
 
-        // Uložíme zmenený košík v cloude
         db.collection('rooms').doc(room.id).update({ cart: room.cart });
 
-        // Uložíme transakciu do KDS pre grafy
         const now = new Date();
         db.collection('transactions').add({
             timestamp: now.toISOString(),
@@ -1298,25 +1313,15 @@
             items: [{ id: partialItem.id, name: partialItem.name, qty: 1, unit: 'ks', price: partial }]
         });
 
-        alert(`Čiastočná platba ${partial.toFixed(2)} € byla prijatá (${method}) a uložená do databázy!`);
+        alert(`Čiastočná platba ${partial.toFixed(2)} € bola prijatá (${method})!`);
         closePaymentModal();
     }
 
     function finalizeTransaction(method) {
         const total = parseFloat(document.getElementById('total-val').innerText);
-        const activeCustomerLoyalty = getActiveCustomerLoyalty();
-
-        if (activeCustomerLoyalty && total > 0) {
-            const pointsEarned = Math.floor(total);
-            const newPoints = activeCustomerLoyalty.points + pointsEarned;
-            db.collection('cards').doc(activeCustomerLoyalty.id).update({ points: newPoints });
-            alert(`Platba ${total.toFixed(2)} € bola uhradená (${method}). Zákazník získal +${pointsEarned} bodov!`);
-        } else {
-            alert(`Platba ${total.toFixed(2)} € bola úspešne vyrovnaná (${method}).`);
-        }
+        alert(`Platba ${total.toFixed(2)} € bola úspešne vyrovnaná (${method}).`);
 
         const room = getCurrentRoom();
-        // Po kompletnom zaplatení vyčistíme účet aj priradenú kartu
         db.collection('rooms').doc(room.id).update({ cart: [], selectedCardId: null });
         closePaymentModal();
     }
@@ -1386,6 +1391,16 @@
     }
 
     // --- PRODUCT MANAGEMENT ---
+    function toggleUntrackedInput() {
+        const isUntracked = document.getElementById('prod-untracked-checkbox').checked;
+        const container = document.getElementById('stock-fields-container');
+        if (isUntracked) {
+            container.classList.add('opacity-40', 'pointer-events-none');
+        } else {
+            container.classList.remove('opacity-40', 'pointer-events-none');
+        }
+    }
+
     function toggleGiftPointsInput() {
         const isGiftChecked = document.getElementById('prod-isgift-checkbox').checked;
         const container = document.getElementById('gift-points-container');
@@ -1406,11 +1421,13 @@
             document.getElementById('prod-name-input').value = p.name;
             document.getElementById('prod-cat-select').value = p.category;
             document.getElementById('prod-price-input').value = p.price;
-            document.getElementById('prod-stock-input').value = p.stock;
-            document.getElementById('prod-unit-input').value = p.unit;
+            document.getElementById('prod-stock-input').value = p.stock || 0;
+            document.getElementById('prod-unit-input').value = p.unit || 'ks';
 
+            document.getElementById('prod-untracked-checkbox').checked = !!p.untracked;
             document.getElementById('prod-isgift-checkbox').checked = !!p.isGift;
             document.getElementById('prod-giftpoints-input').value = p.giftPoints || '';
+            toggleUntrackedInput();
             toggleGiftPointsInput();
         } else {
             document.getElementById('product-modal-title').innerText = "Pridať Nový Produkt";
@@ -1419,8 +1436,10 @@
             document.getElementById('prod-stock-input').value = '';
             document.getElementById('prod-unit-input').value = 'ks';
 
+            document.getElementById('prod-untracked-checkbox').checked = false;
             document.getElementById('prod-isgift-checkbox').checked = false;
             document.getElementById('prod-giftpoints-input').value = '';
+            toggleUntrackedInput();
             toggleGiftPointsInput();
         }
 
@@ -1441,6 +1460,7 @@
         const stock = parseInt(document.getElementById('prod-stock-input').value) || 0;
         const unit = document.getElementById('prod-unit-input').value;
 
+        const untracked = document.getElementById('prod-untracked-checkbox').checked;
         const isGift = document.getElementById('prod-isgift-checkbox').checked;
         const giftPoints = parseInt(document.getElementById('prod-giftpoints-input').value) || Math.round(price);
 
@@ -1449,7 +1469,7 @@
             return;
         }
 
-        const data = { name, category, price, stock, unit, isGift, giftPoints };
+        const data = { name, category, price, stock, unit, untracked, isGift, giftPoints };
 
         if(id) {
             db.collection('products').doc(id).update(data);
@@ -1592,7 +1612,7 @@
                 <td class="p-4 text-slate-400 text-xs">${p.category}</td>
                 <td class="p-4 text-emerald-400 font-bold">${parseFloat(p.price).toFixed(2)} €</td>
                 <td class="p-4 text-amber-400 font-bold">${p.isGift ? `${p.giftPoints || Math.round(p.price)} b` : '-'}</td>
-                <td class="p-4 font-bold ${p.stock <= 10 ? 'text-rose-400' : 'text-slate-300'}">${p.stock} ${p.unit}</td>
+                <td class="p-4 font-bold ${p.untracked ? 'text-indigo-400' : (p.stock <= 10 ? 'text-rose-400' : 'text-slate-300')}">${p.untracked ? '-- (Netrackované)' : `${p.stock}${p.unit}`}</td>
                 <td class="p-4 text-right space-x-2">
                     <button onclick="openProductModal('${p.id}')" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 p-2 rounded-lg border border-slate-700"><i class="fa-solid fa-pen"></i></button>
                     <button onclick="deleteProduct('${p.id}')" class="text-rose-400 hover:text-rose-300 text-xs bg-rose-500/10 p-2 rounded-lg border border-rose-500/20"><i class="fa-solid fa-trash"></i></button>
