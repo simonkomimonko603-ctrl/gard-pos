@@ -930,7 +930,7 @@
             <tr class="hover:bg-slate-950/40">
                 <td class="p-4 text-slate-400 text-xs">${t.timeStr}</td>
                 <td class="p-4 font-bold text-slate-200">${t.room}</td>
-                <td class="p-4 text-slate-300 text-xs">${t.items.map(i => `${i.qty}x ${i.name}`).join(', ')}</td>
+                <td class="p-4 text-slate-300 text-xs">${t.items.map(i => `${i.qty}x${i.name}`).join(', ')}</td>
                 <td class="p-4 font-black text-emerald-400">${parseFloat(t.total).toFixed(2)} €</td>
             </tr>
         `).reverse().join('');
