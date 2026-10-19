@@ -28,17 +28,11 @@
             50% { transform: scale(1.08); opacity: 0.8; }
         }
         .splash-logo { animation: pulseGlow 2s infinite ease-in-out; }
-        .video-fade { transition: opacity 0.6s ease-in-out, transform 0.6s ease-in-out; }
-        .video-hidden { opacity: 0; transform: scale(0.98); }
-        .video-visible { opacity: 1; transform: scale(1); }
     </style>
 </head>
-<body class="h-screen flex flex-col font-sans overflow-hidden bg-slate-950 text-slate-100 select-none" onmousemove="resetScreensaverTimer()" onclick="resetScreensaverTimer()" onkeydown="resetScreensaverTimer()">
+<body class="h-screen flex flex-col font-sans overflow-hidden bg-slate-950 text-slate-100 select-none">
 
 <script>
-    // ==========================================
-    // ⚙️ FIREBASE CONFIG
-    // ==========================================
     const firebaseConfig = {
       apiKey: "AIzaSyDNReaEooXx-6k5l7xQVRugHQ_aPAjclIw",
       authDomain: "gard-pos.firebaseapp.com",
@@ -52,18 +46,6 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 </script>
-
-<!-- SCREENSAVER OVERLAY -->
-<div id="screensaver-overlay" onclick="hideScreensaver()" class="fixed inset-0 z-50 bg-black hidden flex-col items-center justify-center cursor-pointer overflow-hidden">
-    <video id="screensaver-video" class="w-full h-full object-cover video-fade video-visible" autoplay playsinline>
-        <source id="screensaver-video-source" src="" type="video/mp4">
-    </video>
-    <div class="absolute top-6 left-6 bg-black/60 backdrop-blur-md px-4 py-2 rounded-2xl text-xs text-slate-200 font-bold border border-white/10 pointer-events-none flex items-center gap-3 z-10">
-        <span class="w-2.5 h-2.5 rounded-full bg-red-500 animate-ping"></span>
-        <span id="ss-ad-title">Reklama</span>
-        <span id="ss-ad-badge" class="bg-indigo-500/30 text-indigo-300 border border-indigo-500/30 px-2 py-0.5 rounded-lg text-[10px]">1/1</span>
-    </div>
-</div>
 
 <div id="app" class="h-full w-full flex flex-col">
     <!-- SPLASH SCREEN -->
@@ -90,18 +72,18 @@
                 <div id="pin-dot-4" class="w-4 h-4 rounded-full border-2 border-slate-700 bg-slate-950 transition-all duration-200"></div>
             </div>
             <div class="grid grid-cols-3 gap-3 mb-6">
-                <button onclick="pressPin('1')" class="h-14 bg-slate-950 hover:bg-slate-800 border border-slate-800 text-xl font-bold rounded-2xl transition">1</button>
-                <button onclick="pressPin('2')" class="h-14 bg-slate-950 hover:bg-slate-800 border border-slate-800 text-xl font-bold rounded-2xl transition">2</button>
-                <button onclick="pressPin('3')" class="h-14 bg-slate-950 hover:bg-slate-800 border border-slate-800 text-xl font-bold rounded-2xl transition">3</button>
-                <button onclick="pressPin('4')" class="h-14 bg-slate-950 hover:bg-slate-800 border border-slate-800 text-xl font-bold rounded-2xl transition">4</button>
-                <button onclick="pressPin('5')" class="h-14 bg-slate-950 hover:bg-slate-800 border border-slate-800 text-xl font-bold rounded-2xl transition">5</button>
-                <button onclick="pressPin('6')" class="h-14 bg-slate-950 hover:bg-slate-800 border border-slate-800 text-xl font-bold rounded-2xl transition">6</button>
-                <button onclick="pressPin('7')" class="h-14 bg-slate-950 hover:bg-slate-800 border border-slate-800 text-xl font-bold rounded-2xl transition">7</button>
-                <button onclick="pressPin('8')" class="h-14 bg-slate-950 hover:bg-slate-800 border border-slate-800 text-xl font-bold rounded-2xl transition">8</button>
-                <button onclick="pressPin('9')" class="h-14 bg-slate-950 hover:bg-slate-800 border border-slate-800 text-xl font-bold rounded-2xl transition">9</button>
-                <button onclick="clearPin()" class="h-14 bg-rose-500/10 text-rose-400 border border-rose-500/20 font-bold rounded-2xl transition"><i class="fa-solid fa-eraser"></i></button>
-                <button onclick="pressPin('0')" class="h-14 bg-slate-950 hover:bg-slate-800 border border-slate-800 text-xl font-bold rounded-2xl transition">0</button>
-                <button onclick="enterPin()" class="h-14 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-2xl transition"><i class="fa-solid fa-arrow-right"></i></button>
+                <button onclick="pressPin('1')" class="h-14 bg-slate-950 hover:bg-slate-800 border border-slate-800 text-xl font-bold rounded-2xl">1</button>
+                <button onclick="pressPin('2')" class="h-14 bg-slate-950 hover:bg-slate-800 border border-slate-800 text-xl font-bold rounded-2xl">2</button>
+                <button onclick="pressPin('3')" class="h-14 bg-slate-950 hover:bg-slate-800 border border-slate-800 text-xl font-bold rounded-2xl">3</button>
+                <button onclick="pressPin('4')" class="h-14 bg-slate-950 hover:bg-slate-800 border border-slate-800 text-xl font-bold rounded-2xl">4</button>
+                <button onclick="pressPin('5')" class="h-14 bg-slate-950 hover:bg-slate-800 border border-slate-800 text-xl font-bold rounded-2xl">5</button>
+                <button onclick="pressPin('6')" class="h-14 bg-slate-950 hover:bg-slate-800 border border-slate-800 text-xl font-bold rounded-2xl">6</button>
+                <button onclick="pressPin('7')" class="h-14 bg-slate-950 hover:bg-slate-800 border border-slate-800 text-xl font-bold rounded-2xl">7</button>
+                <button onclick="pressPin('8')" class="h-14 bg-slate-950 hover:bg-slate-800 border border-slate-800 text-xl font-bold rounded-2xl">8</button>
+                <button onclick="pressPin('9')" class="h-14 bg-slate-950 hover:bg-slate-800 border border-slate-800 text-xl font-bold rounded-2xl">9</button>
+                <button onclick="clearPin()" class="h-14 bg-rose-500/10 text-rose-400 border border-rose-500/20 font-bold rounded-2xl"><i class="fa-solid fa-eraser"></i></button>
+                <button onclick="pressPin('0')" class="h-14 bg-slate-950 hover:bg-slate-800 border border-slate-800 text-xl font-bold rounded-2xl">0</button>
+                <button onclick="enterPin()" class="h-14 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-2xl"><i class="fa-solid fa-arrow-right"></i></button>
             </div>
             <p id="pin-error" class="text-xs text-rose-400 font-bold hidden"><i class="fa-solid fa-circle-exclamation"></i> Neplatný PIN kód!</p>
         </div>
@@ -114,17 +96,17 @@
                 <div class="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center font-black text-emerald-400 text-xl shadow-inner">G</div>
                 <div>
                     <h1 class="text-xl font-black tracking-wider text-slate-100">GARD <span class="text-emerald-400">POS</span></h1>
-                    <p class="text-xs text-slate-400">Obsluha: <span id="current-user-display" class="text-emerald-400 font-bold">---</span> <span class="text-xs bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full ml-2 font-mono">LIVE CLOUD</span></p>
+                    <p class="text-xs text-slate-400">Obsluha: <span id="current-user-display" class="text-emerald-400 font-bold">---</span></p>
                 </div>
             </div>
             <nav class="flex space-x-2">
-                <button onclick="switchTab('pos')" id="tab-pos" class="px-4 py-2 rounded-xl font-semibold bg-emerald-600 hover:bg-emerald-500 transition text-sm flex items-center gap-2 shadow-lg"><i class="fa-solid fa-calculator"></i>Pokladňa</button>
+                <button onclick="switchTab('pos')" id="tab-pos" class="px-4 py-2 rounded-xl font-semibold bg-emerald-600 hover:bg-emerald-500 transition text-sm flex items-center gap-2"><i class="fa-solid fa-calculator"></i>Pokladňa</button>
                 <button onclick="switchTab('transactions')" id="tab-transactions" class="px-4 py-2 rounded-xl font-semibold hover:bg-slate-800 text-slate-300 transition text-sm flex items-center gap-2"><i class="fa-solid fa-receipt"></i>Transakcie</button>
                 <button onclick="switchTab('analytics')" id="tab-analytics" class="px-4 py-2 rounded-xl font-semibold hover:bg-slate-800 text-slate-300 transition text-sm flex items-center gap-2"><i class="fa-solid fa-chart-pie"></i>Analytika</button>
                 <button onclick="switchTab('rooms')" id="tab-rooms" class="px-4 py-2 rounded-xl font-semibold hover:bg-slate-800 text-slate-300 transition text-sm flex items-center gap-2"><i class="fa-solid fa-hotel"></i>Izby</button>
                 <button onclick="switchTab('cards')" id="tab-cards" class="px-4 py-2 rounded-xl font-semibold hover:bg-slate-800 text-slate-300 transition text-sm flex items-center gap-2"><i class="fa-solid fa-id-card"></i>Karty</button>
                 <button onclick="switchTab('stock')" id="tab-stock" class="px-4 py-2 rounded-xl font-semibold hover:bg-slate-800 text-slate-300 transition text-sm flex items-center gap-2"><i class="fa-solid fa-boxes-stacked"></i>Sklad</button>
-                <button onclick="switchTab('funds')" id="tab-funds" class="px-4 py-2 rounded-xl font-semibold hover:bg-slate-800 text-slate-300 transition text-sm flex items-center gap-2"><i class="fa-solid fa-piggy-bank"></i>Kasičky</button>
+                <button onclick="switchTab('funds')" id="tab-funds" class="px-4 py-2 rounded-xl font-semibold hover:bg-slate-800 text-slate-300 transition text-sm flex items-center gap-2"><i class="fa-solid fa-piggy-bank"></i>Kasičky & ROI Ciele</button>
             </nav>
             <button onclick="logout()" class="bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2">
                 <i class="fa-solid fa-right-from-bracket"></i> Odhlásiť
@@ -132,7 +114,7 @@
         </header>
 
         <main class="flex-1 overflow-hidden p-4">
-            <!-- POKLADŇA -->
+            <!-- TAB: POKLADŇA -->
             <div id="view-pos" class="h-full flex gap-4">
                 <div class="flex-1 bg-slate-900/60 border border-slate-800 rounded-2xl p-4 flex flex-col h-full shadow-2xl backdrop-blur-md">
                     <div class="flex justify-between items-center mb-4">
@@ -157,11 +139,7 @@
                     </div>
 
                     <div class="mb-3">
-                        <div class="flex justify-between items-center mb-1">
-                            <label class="block text-xs font-semibold text-slate-400">Vernostný zákazník:</label>
-                            <span id="active-user-points-badge" class="text-xs font-bold text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full hidden">0 b</span>
-                        </div>
-                        <select id="cart-customer-select" onchange="applyCustomerLoyalty()" class="w-full text-sm border border-slate-700 rounded-xl p-2.5 bg-slate-950 text-slate-200 focus:outline-none focus:border-emerald-500">
+                        <select id="cart-customer-select" onchange="applyCustomerLoyalty()" class="w-full text-sm border border-slate-700 rounded-xl p-2.5 bg-slate-950 text-slate-200">
                             <option value="">-- Bez karty --</option>
                         </select>
                     </div>
@@ -187,144 +165,93 @@
                 </div>
             </div>
 
-            <!-- TRANSAKCIE -->
+            <!-- TAB: TRANSAKCIE -->
             <div id="view-transactions" class="h-full hidden flex-col bg-slate-900/60 border border-slate-800 rounded-2xl shadow-2xl p-6 overflow-y-auto">
-                <div class="flex justify-between items-center mb-6">
-                    <div><h2 class="text-xl font-bold text-slate-100">Odoslané Objednávky & Transakcie</h2></div>
-                </div>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left border-collapse">
-                        <thead>
-                            <tr class="border-b border-slate-800 bg-slate-950/60 text-xs font-semibold text-slate-400 uppercase">
-                                <th class="p-4">Započítať</th>
-                                <th class="p-4">Čas</th>
-                                <th class="p-4">Izba</th>
-                                <th class="p-4">Položky</th>
-                                <th class="p-4">Suma</th>
-                            </tr>
-                        </thead>
-                        <tbody id="transactions-table-body" class="divide-y divide-slate-800 text-sm"></tbody>
-                    </table>
-                </div>
+                <h2 class="text-xl font-bold text-slate-100 mb-6">Transakcie</h2>
+                <table class="w-full text-left border-collapse">
+                    <thead><tr class="border-b border-slate-800 bg-slate-950/60 text-xs font-semibold text-slate-400 uppercase"><th class="p-4">Čas</th><th class="p-4">Izba</th><th class="p-4">Položky</th><th class="p-4">Suma</th></tr></thead>
+                    <tbody id="transactions-table-body" class="divide-y divide-slate-800 text-sm"></tbody>
+                </table>
             </div>
 
-            <!-- ANALYTIKA -->
+            <!-- TAB: ANALYTIKA -->
             <div id="view-analytics" class="h-full hidden flex-col gap-4 overflow-y-auto">
-                <div class="flex justify-between items-center bg-slate-900/80 border border-slate-800 p-4 rounded-2xl shadow-xl">
-                    <h2 class="text-xl font-bold text-slate-100">Štatistiky Predajov</h2>
-                </div>
                 <div class="grid grid-cols-3 gap-4">
-                    <div class="bg-slate-900/80 border border-slate-800 p-5 rounded-2xl shadow-xl border-l-4 border-l-emerald-500">
-                        <div class="text-xs font-semibold text-slate-400 uppercase">Obrat</div>
-                        <div id="kpi-revenue" class="text-3xl font-black text-slate-100 mt-1">0.00 €</div>
-                    </div>
-                    <div class="bg-slate-900/80 border border-slate-800 p-5 rounded-2xl shadow-xl border-l-4 border-l-amber-500">
-                        <div class="text-xs font-semibold text-slate-400 uppercase">Objednávky</div>
-                        <div id="kpi-orders" class="text-3xl font-black text-slate-100 mt-1">0</div>
-                    </div>
-                    <div class="bg-slate-900/80 border border-slate-800 p-5 rounded-2xl shadow-xl border-l-4 border-l-indigo-500">
-                        <div class="text-xs font-semibold text-slate-400 uppercase">Množstvo</div>
-                        <div id="kpi-items" class="text-3xl font-black text-slate-100 mt-1">0 ks</div>
-                    </div>
-                </div>
-                <div class="grid grid-cols-2 gap-4 flex-1">
-                    <div class="bg-slate-900/80 border border-slate-800 p-5 rounded-2xl shadow-xl flex flex-col"><h3 class="font-bold text-slate-200 mb-3">Tržby</h3><div class="flex-1 relative min-h-[260px]"><canvas id="barChartHourly"></canvas></div></div>
-                    <div class="bg-slate-900/80 border border-slate-800 p-5 rounded-2xl shadow-xl flex flex-col"><h3 class="font-bold text-slate-200 mb-3">Podiel</h3><div class="flex-1 relative min-h-[260px]"><canvas id="pieChartProducts"></canvas></div></div>
+                    <div class="bg-slate-900/80 border border-slate-800 p-5 rounded-2xl shadow-xl border-l-4 border-l-emerald-500"><div class="text-xs font-semibold text-slate-400 uppercase">Obrat</div><div id="kpi-revenue" class="text-3xl font-black text-slate-100 mt-1">0.00 €</div></div>
+                    <div class="bg-slate-900/80 border border-slate-800 p-5 rounded-2xl shadow-xl border-l-4 border-l-amber-500"><div class="text-xs font-semibold text-slate-400 uppercase">Objednávky</div><div id="kpi-orders" class="text-3xl font-black text-slate-100 mt-1">0</div></div>
+                    <div class="bg-slate-900/80 border border-slate-800 p-5 rounded-2xl shadow-xl border-l-4 border-l-indigo-500"><div class="text-xs font-semibold text-slate-400 uppercase">Predané ks</div><div id="kpi-items" class="text-3xl font-black text-slate-100 mt-1">0 ks</div></div>
                 </div>
             </div>
 
-            <!-- IZBY -->
-            <div id="view-rooms" class="h-full hidden flex-col bg-slate-900/60 border border-slate-800 rounded-2xl shadow-2xl p-6 overflow-y-auto">
-                <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-xl font-bold text-slate-100">Správa izieb a stolov</h2>
-                    <button onclick="openRoomModal()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-xl font-bold text-xs"><i class="fa-solid fa-plus"></i> Pridať</button>
-                </div>
+            <!-- TAB: IZBY -->
+            <div id="view-rooms" class="h-full hidden flex-col bg-slate-900/60 border border-slate-800 rounded-2xl p-6 overflow-y-auto">
+                <div class="flex justify-between items-center mb-6"><h2 class="text-xl font-bold text-slate-100">Izby / Stoly</h2><button onclick="openRoomModal()" class="bg-emerald-600 text-white px-4 py-2 rounded-xl text-xs font-bold">+ Pridať</button></div>
                 <div id="rooms-list-grid" class="grid grid-cols-2 sm:grid-cols-4 gap-4"></div>
             </div>
 
-            <!-- KARTY -->
-            <div id="view-cards" class="h-full hidden flex-col bg-slate-900/60 border border-slate-800 rounded-2xl shadow-2xl p-6 overflow-y-auto">
-                <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-xl font-bold text-slate-100">Vernostné karty</h2>
-                    <button onclick="openCardModal()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-xl font-bold text-xs"><i class="fa-solid fa-plus"></i> Nová karta</button>
-                </div>
+            <!-- TAB: KARTY -->
+            <div id="view-cards" class="h-full hidden flex-col bg-slate-900/60 border border-slate-800 rounded-2xl p-6 overflow-y-auto">
+                <div class="flex justify-between items-center mb-6"><h2 class="text-xl font-bold text-slate-100">Vernostné Karty</h2><button onclick="openCardModal()" class="bg-emerald-600 text-white px-4 py-2 rounded-xl text-xs font-bold">+ Nová</button></div>
                 <table class="w-full text-left border-collapse">
-                    <thead><tr class="border-b border-slate-800 bg-slate-950/60 text-xs font-semibold text-slate-400 uppercase"><th class="p-4">Meno</th><th class="p-4">Číslo</th><th class="p-4">Body</th><th class="p-4">Zľava</th><th class="p-4 text-right">Akcie</th></tr></thead>
+                    <thead><tr class="border-b border-slate-800 bg-slate-950/60 text-xs text-slate-400 uppercase"><th class="p-4">Meno</th><th class="p-4">Číslo</th><th class="p-4">Body</th><th class="p-4">Zľava (%)</th></tr></thead>
                     <tbody id="loyalty-cards-table-body" class="divide-y divide-slate-800 text-sm"></tbody>
                 </table>
             </div>
 
-            <!-- KASIČKY A PROGRESS BARY -->
-            <div id="view-funds" class="h-full hidden flex-col gap-4 overflow-y-auto">
-                <div class="grid grid-cols-3 gap-4">
-                    <!-- Investície -->
-                    <div class="bg-slate-900/80 border border-slate-800 p-5 rounded-2xl shadow-xl border-l-4 border-l-emerald-500 space-y-3">
-                        <div class="flex justify-between items-center">
-                            <span class="text-xs font-semibold text-slate-400 uppercase">Investície (15€ štart)</span>
-                            <div class="flex items-center gap-1 text-xs">
-                                <span class="text-slate-500">Cieľ:</span>
-                                <input type="number" id="target-inv" value="500" onchange="saveTargets()" class="w-16 bg-slate-950 border border-slate-700 text-emerald-400 px-1.5 py-0.5 rounded text-right font-bold">€
-                            </div>
+            <!-- TAB: KASIČKY A ROI CIELE -->
+            <div id="view-funds" class="h-full hidden flex-col gap-6 overflow-y-auto">
+                
+                <!-- SEKCIA 1: ROI & SPLÁCANIE CIEĽOV (Vlastné ciele) -->
+                <div class="bg-slate-900/90 border border-amber-500/30 p-6 rounded-3xl shadow-2xl backdrop-blur-md">
+                    <div class="flex justify-between items-center mb-4">
+                        <div>
+                            <h2 class="text-xl font-black text-amber-400 flex items-center gap-2">
+                                <i class="fa-solid fa-bullseye"></i> ROI & Splácanie cieľov (Vlastné Investície)
+                            </h2>
+                            <p class="text-xs text-slate-400">Nastavte si ciele splácania (napr. kávovar, prerábka). Zisk z predaja nápojov ich bude automaticky napĺňať.</p>
                         </div>
-                        <div id="fund-investments" class="text-3xl font-black text-emerald-400">0.00 €</div>
-                        <!-- Progress bar -->
-                        <div class="space-y-1">
-                            <div class="flex justify-between text-[10px] text-slate-400 font-bold"><span id="prog-inv-pct">0%</span><span id="milestone-inv-txt">Milník: 0%</span></div>
-                            <div class="w-full bg-slate-950 h-3 rounded-full overflow-hidden border border-slate-800 p-0.5">
-                                <div id="bar-inv" class="bg-emerald-500 h-full rounded-full transition-all duration-500" style="width: 0%"></div>
-                            </div>
-                        </div>
+                        <button onclick="openGoalModal()" class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-black px-4 py-2.5 rounded-xl text-xs transition flex items-center gap-2">
+                            <i class="fa-solid fa-plus"></i> Pridať nový cieľ / investíciu
+                        </button>
                     </div>
 
-                    <!-- Sklad -->
-                    <div class="bg-slate-900/80 border border-slate-800 p-5 rounded-2xl shadow-xl border-l-4 border-l-amber-500 space-y-3">
-                        <div class="flex justify-between items-center">
-                            <span class="text-xs font-semibold text-slate-400 uppercase">Sklad (20€ štart)</span>
-                            <div class="flex items-center gap-1 text-xs">
-                                <span class="text-slate-500">Cieľ:</span>
-                                <input type="number" id="target-stock" value="200" onchange="saveTargets()" class="w-16 bg-slate-950 border border-slate-700 text-amber-400 px-1.5 py-0.5 rounded text-right font-bold">€
-                            </div>
-                        </div>
-                        <div id="fund-stock" class="text-3xl font-black text-amber-400">0.00 €</div>
-                        <!-- Progress bar -->
-                        <div class="space-y-1">
-                            <div class="flex justify-between text-[10px] text-slate-400 font-bold"><span id="prog-stock-pct">0%</span><span id="milestone-stock-txt">Milník: 0%</span></div>
-                            <div class="w-full bg-slate-950 h-3 rounded-full overflow-hidden border border-slate-800 p-0.5">
-                                <div id="bar-stock" class="bg-amber-500 h-full rounded-full transition-all duration-500" style="width: 0%"></div>
-                            </div>
-                        </div>
+                    <!-- Zoznam cieľov -->
+                    <div id="goals-list-container" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- Generované dynamicky -->
                     </div>
+                </div>
 
-                    <!-- Výplata -->
-                    <div class="bg-slate-900/80 border border-slate-800 p-5 rounded-2xl shadow-xl border-l-4 border-l-blue-500 space-y-3">
-                        <div class="flex justify-between items-center">
-                            <span class="text-xs font-semibold text-slate-400 uppercase">Výplata (0€ štart)</span>
-                            <div class="flex items-center gap-1 text-xs">
-                                <span class="text-slate-500">Cieľ:</span>
-                                <input type="number" id="target-payout" value="500" onchange="saveTargets()" class="w-16 bg-slate-950 border border-slate-700 text-blue-400 px-1.5 py-0.5 rounded text-right font-bold">€
-                            </div>
+                <!-- SEKCIA 2: ŠTANDARDNÉ KASIČKY -->
+                <div>
+                    <h3 class="text-sm font-bold text-slate-400 uppercase mb-3 flex items-center gap-2">
+                        <i class="fa-solid fa-vault text-slate-500"></i> Trojkasičkový systém
+                    </h3>
+                    <div class="grid grid-cols-3 gap-4">
+                        <div class="bg-slate-900/80 border border-slate-800 p-5 rounded-2xl shadow-xl border-l-4 border-l-emerald-500">
+                            <div class="text-xs font-semibold text-slate-400 uppercase">Investície (15 € štart)</div>
+                            <div id="fund-investments" class="text-3xl font-black text-emerald-400 mt-1">15.00 €</div>
                         </div>
-                        <div id="fund-payout" class="text-3xl font-black text-blue-400">0.00 €</div>
-                        <!-- Progress bar -->
-                        <div class="space-y-1">
-                            <div class="flex justify-between text-[10px] text-slate-400 font-bold"><span id="prog-payout-pct">0%</span><span id="milestone-payout-txt">Milník: 0%</span></div>
-                            <div class="w-full bg-slate-950 h-3 rounded-full overflow-hidden border border-slate-800 p-0.5">
-                                <div id="bar-payout" class="bg-blue-500 h-full rounded-full transition-all duration-500" style="width: 0%"></div>
-                            </div>
+                        <div class="bg-slate-900/80 border border-slate-800 p-5 rounded-2xl shadow-xl border-l-4 border-l-amber-500">
+                            <div class="text-xs font-semibold text-slate-400 uppercase">Sklad (20 € štart)</div>
+                            <div id="fund-stock" class="text-3xl font-black text-amber-400 mt-1">20.00 €</div>
+                        </div>
+                        <div class="bg-slate-900/80 border border-slate-800 p-5 rounded-2xl shadow-xl border-l-4 border-l-blue-500">
+                            <div class="text-xs font-semibold text-slate-400 uppercase">Výplata (0 € štart)</div>
+                            <div id="fund-payout" class="text-3xl font-black text-blue-400 mt-1">0.00 €</div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Zisk produktov & správa -->
+                <!-- SEKCIA 3: NASTAVENIE ZISKU PRODUKTOV -->
                 <div class="bg-slate-900/80 border border-slate-800 p-6 rounded-2xl shadow-xl">
                     <h3 class="text-lg font-bold text-slate-100 mb-2 flex items-center gap-2"><i class="fa-solid fa-chart-line text-emerald-400"></i> Nastavenie zisku na produkt / nápoj</h3>
-                    <p class="text-xs text-slate-400 mb-4">Zadajte čistý zisk z každej položky. Systém ho automaticky započíta do prírastkov do kasičiek pri predaji.</p>
+                    <p class="text-xs text-slate-400 mb-4">Zadajte čistý zisk. Systém ho započíta do prírastkov do ROI cieľov aj do kasičiek pri predaji.</p>
                     <div id="product-profit-config-list" class="grid grid-cols-1 sm:grid-cols-3 gap-3 max-h-48 overflow-y-auto pr-1"></div>
                 </div>
 
-                <!-- Výdavky -->
+                <!-- SEKCIA 4: VÝDAVKY -->
                 <div class="bg-slate-900/80 border border-slate-800 p-6 rounded-2xl shadow-xl">
-                    <h3 class="text-lg font-bold text-slate-100 mb-4 flex items-center gap-2"><i class="fa-solid fa-minus-circle text-rose-400"></i> Zaznamenať Výdavok / Výber z kasičky</h3>
+                    <h3 class="text-lg font-bold text-slate-100 mb-4 flex items-center gap-2"><i class="fa-solid fa-minus-circle text-rose-400"></i> Zaznamenať Výdavok</h3>
                     <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
                         <select id="expense-fund-select" class="p-3 border border-slate-700 bg-slate-950 text-slate-100 rounded-xl text-sm"><option value="investments">Investície</option><option value="stock">Sklad</option><option value="payout">Výplata</option></select>
                         <input type="number" step="0.01" id="expense-amount-input" placeholder="Suma v €" class="p-3 border border-slate-700 bg-slate-950 text-slate-100 rounded-xl text-sm">
@@ -333,7 +260,7 @@
                     </div>
                 </div>
 
-                <!-- História -->
+                <!-- SEKCIA 5: HISTÓRIA -->
                 <div class="bg-slate-900/80 border border-slate-800 p-6 rounded-2xl shadow-xl">
                     <h3 class="text-lg font-bold text-slate-100 mb-4 flex items-center gap-2"><i class="fa-solid fa-list-check text-slate-400"></i> História pohybov v kasičkách</h3>
                     <div class="overflow-x-auto">
@@ -345,7 +272,7 @@
                 </div>
             </div>
 
-            <!-- SKLAD -->
+            <!-- TAB: SKLAD -->
             <div id="view-stock" class="h-full hidden flex-col bg-slate-900/60 border border-slate-800 rounded-2xl shadow-2xl p-6 overflow-y-auto">
                 <div class="flex justify-between items-center mb-6">
                     <h2 class="text-xl font-bold text-slate-100">Správa Skladu & Produktov</h2>
@@ -363,7 +290,23 @@
     </div>
 </div>
 
-<!-- MODALY -->
+<!-- MODAL NA PRIDANIE CIEĽA (ROI) -->
+<div id="goal-modal" class="fixed inset-0 bg-black/80 hidden items-center justify-center modal z-50 backdrop-blur-md">
+    <div class="bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl w-96 p-6 text-slate-100">
+        <h3 class="text-lg font-bold mb-4 flex items-center gap-2 text-amber-400"><i class="fa-solid fa-bullseye"></i> Pridať ROI cieľ</h3>
+        <div class="space-y-3 mb-4">
+            <input type="text" id="goal-name-input" placeholder="Názov cieľa (napr. Kávovar)" class="w-full p-3 border border-slate-700 bg-slate-950 text-slate-100 rounded-xl text-sm">
+            <input type="number" id="goal-target-input" placeholder="Cieľová suma v € (napr. 1000)" class="w-full p-3 border border-slate-700 bg-slate-950 text-slate-100 rounded-xl text-sm">
+            <input type="number" id="goal-share-input" value="100" placeholder="Percento zo zisku (%)" class="w-full p-3 border border-slate-700 bg-slate-950 text-slate-100 rounded-xl text-sm">
+        </div>
+        <div class="flex justify-end gap-2">
+            <button onclick="closeGoalModal()" class="px-4 py-2.5 border border-slate-700 rounded-xl text-xs font-bold">Zrušiť</button>
+            <button onclick="saveGoal()" class="px-4 py-2.5 bg-amber-500 text-slate-950 font-black rounded-xl text-xs">Uložiť Cieľ</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: INÉ -->
 <div id="custom-item-modal" class="fixed inset-0 bg-black/80 hidden items-center justify-center modal z-50 backdrop-blur-md">
     <div class="bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl w-96 p-6 text-slate-100">
         <h3 class="text-lg font-bold mb-4">Pridať vlastnú položku</h3>
@@ -447,11 +390,12 @@
     let loyaltyCards = [];
     let kdsTransactions = [];
 
-    // Počiatočné stavy podľa zadania: Investície 15, Sklad 20, Výplata 0
+    // Počiatočný stav kasičiek
     let fundsState = { investments: 15, stock: 20, payout: 0 };
-    let fundTargets = { investments: 500, stock: 200, payout: 500 };
-    let fundMilestonesReached = { investments: {}, stock: {}, payout: {} };
     let fundLogs = [];
+
+    // ROI Vlastné ciele
+    let roiGoals = [];
 
     let activeRoomId = 'main';
     let selectedCategory = 'All';
@@ -523,14 +467,17 @@
 
         db.collection('settings').doc('funds').onSnapshot(doc => {
             if (doc.exists) {
-                const data = doc.data();
-                fundsState = data.state || { investments: 15, stock: 20, payout: 0 };
-                fundTargets = data.targets || { investments: 500, stock: 200, payout: 500 };
-                fundMilestonesReached = data.milestones || { investments: {}, stock: {}, payout: {} };
+                fundsState = doc.data();
             } else {
-                saveFundsToDb();
+                db.collection('settings').doc('funds').set(fundsState);
             }
             renderFundsUI();
+        });
+
+        db.collection('roi_goals').onSnapshot(snapshot => {
+            roiGoals = [];
+            snapshot.forEach(doc => roiGoals.push({ id: doc.id, ...doc.data() }));
+            renderRoiGoals();
         });
 
         db.collection('fund_logs').onSnapshot(snapshot => {
@@ -541,31 +488,31 @@
         });
     }
 
-    function saveFundsToDb() {
-        db.collection('settings').doc('funds').set({
-            state: fundsState,
-            targets: fundTargets,
-            milestones: fundMilestonesReached
-        });
-    }
-
-    function saveTargets() {
-        fundTargets.investments = parseFloat(document.getElementById('target-inv').value) || 500;
-        fundTargets.stock = parseFloat(document.getElementById('target-stock').value) || 200;
-        fundTargets.payout = parseFloat(document.getElementById('target-payout').value) || 500;
-        saveFundsToDb();
-        renderFundsUI();
-    }
-
-    // --- VÝPOČET ROZDELENIA ZISKU DO KASIČIEK ---
-    function processProfitToFunds(profitAmount, sourceName) {
+    // --- SPRACOVANIE ZISKU A PRIPÍSANIE DO ROI CIEĽOV AJ KASIČIEK ---
+    function processProfitToFundsAndGoals(profitAmount, sourceName) {
         if (profitAmount <= 0) return;
 
+        // 1. Pripísanie do nastavených ROI cieľov
+        roiGoals.forEach(goal => {
+            if (goal.current < goal.target) {
+                const addAmount = profitAmount * ((goal.share || 100) / 100);
+                const newCurrent = Math.min(goal.target, goal.current + addAmount);
+                const isCompletedNow = newCurrent >= goal.target && goal.current < goal.target;
+
+                db.collection('roi_goals').doc(goal.id).update({ current: newCurrent });
+
+                if (isCompletedNow) {
+                    triggerConfetti();
+                    alert(`🎉 GRATULUJEME! Cieľ "${goal.name}" bol práve plne splatený (100% / ${goal.target.toFixed(2)} €)!`);
+                }
+            }
+        });
+
+        // 2. Pripísanie do 3 Kasičiek podľa pravidiel (30/40/30 resp. 50/0/50 pri Sklad >= 100)
         let invPct = 0.30;
         let stockPct = 0.40;
         let payoutPct = 0.30;
 
-        // Ak je v sklade 100 € alebo viac -> 50% investície, 50% výplata, 0% sklad
         if (fundsState.stock >= 100) {
             invPct = 0.50;
             stockPct = 0.00;
@@ -582,11 +529,7 @@
         fundsState.stock += split.stock;
         fundsState.payout += split.payout;
 
-        checkMilestones('investments', fundsState.investments, fundTargets.investments);
-        checkMilestones('stock', fundsState.stock, fundTargets.stock);
-        checkMilestones('payout', fundsState.payout, fundTargets.payout);
-
-        saveFundsToDb();
+        db.collection('settings').doc('funds').set(fundsState);
 
         db.collection('fund_logs').add({
             timestamp: new Date().toISOString(),
@@ -594,63 +537,113 @@
             type: `Zisk (${sourceName})`,
             amount: profitAmount,
             split: split,
-            note: `Rozdelené podľa pravidiel`
+            note: `Rozdelené do kasičiek a započítané do ROI cieľov`
         });
-    }
-
-    // Kontrola milníkov a spúšťanie konfets
-    function checkMilestones(fundKey, currentVal, targetVal) {
-        if (targetVal <= 0) return;
-        const pct = Math.floor((currentVal / targetVal) * 100);
-
-        [25, 50, 75, 100].forEach(milestone => {
-            if (pct >= milestone && !fundMilestonesReached[fundKey][milestone]) {
-                fundMilestonesReached[fundKey][milestone] = true;
-                triggerConfetti();
-                alert(`🎉 Úspech! Kasička "${fundKey.toUpperCaseগে()}" dosiahla milník ${milestone}% (${currentVal.toFixed(2)} €)!`);
-            }
-        });
-
-        // Špeciálny milník pre Sklad >= 100 €
-        if (fundKey === 'stock' && currentVal >= 100 && !fundMilestonesReached.stock['100eur']) {
-            fundMilestonesReached.stock['100eur'] = true;
-            triggerConfetti();
-            alert(`🚀 Sklad presiahol 100 €! Odteraz sa zisky delia 50% Investície / 50% Výplata.`);
-        }
     }
 
     function triggerConfetti() {
         if (typeof confetti === 'function') {
-            confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+            confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 } });
+        }
+    }
+
+    // --- RENDERING ROI CIEĽOV ---
+    function renderRoiGoals() {
+        const container = document.getElementById('goals-list-container');
+        if (!container) return;
+
+        if (roiGoals.length === 0) {
+            container.innerHTML = `<div class="col-span-2 text-center text-xs text-slate-500 py-6 border border-dashed border-slate-800 rounded-2xl">Žiadne aktívne ciele. Kliknite na "+ Pridať nový cieľ / investíciu".</div>`;
+            return;
+        }
+
+        container.innerHTML = roiGoals.map(goal => {
+            const pct = Math.min(100, Math.round((goal.current / goal.target) * 100));
+            const isDone = goal.current >= goal.target;
+
+            return `
+                <div class="bg-slate-950 p-4 rounded-2xl border ${isDone ? 'border-emerald-500/50' : 'border-slate-800'} space-y-3 shadow-lg">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <div class="font-bold text-slate-100 flex items-center gap-2">
+                                <span>${goal.name}</span>
+                                ${isDone ? '<span class="text-[10px] bg-emerald-500/20 text-emerald-400 font-bold px-2 py-0.5 rounded-full border border-emerald-500/30">SPLANÉ</span>' : ''}
+                            </div>
+                            <div class="text-xs text-slate-400 mt-0.5">Podiel zo zisku: ${goal.share || 100}%</div>
+                        </div>
+                        <button onclick="deleteGoal('${goal.id}')" class="text-xs text-rose-400 hover:text-rose-300 p-1"><i class="fa-solid fa-trash"></i></button>
+                    </div>
+
+                    <div class="flex justify-between items-end">
+                        <div class="text-2xl font-black ${isDone ? 'text-emerald-400' : 'text-amber-400'}">${goal.current.toFixed(2)} €</div>
+                        <div class="text-xs text-slate-400 font-bold">Cieľ: ${parseFloat(goal.target).toFixed(2)} €</div>
+                    </div>
+
+                    <div class="space-y-1">
+                        <div class="flex justify-between text-[10px] text-slate-400 font-bold">
+                            <span>Splatené: ${pct}%</span>
+                            <span>Chýba: ${Math.max(0, goal.target - goal.current).toFixed(2)} €</span>
+                        </div>
+                        <div class="w-full bg-slate-900 h-3 rounded-full overflow-hidden border border-slate-800 p-0.5">
+                            <div class="${isDone ? 'bg-emerald-500' : 'bg-amber-500'} h-full rounded-full transition-all duration-500" style="width: ${pct}%"></div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    function openGoalModal() {
+        document.getElementById('goal-name-input').value = '';
+        document.getElementById('goal-target-input').value = '';
+        document.getElementById('goal-share-input').value = '100';
+        document.getElementById('goal-modal').classList.remove('hidden');
+        document.getElementById('goal-modal').classList.add('flex');
+    }
+
+    function closeGoalModal() {
+        document.getElementById('goal-modal').classList.add('hidden');
+        document.getElementById('goal-modal').classList.remove('flex');
+    }
+
+    function saveGoal() {
+        const name = document.getElementById('goal-name-input').value.trim();
+        const target = parseFloat(document.getElementById('goal-target-input').value) || 0;
+        const share = parseFloat(document.getElementById('goal-share-input').value) || 100;
+
+        if (!name || target <= 0) {
+            alert("Zadajte platný názov a cieľovú sumu!");
+            return;
+        }
+
+        db.collection('roi_goals').add({
+            name: name,
+            target: target,
+            current: 0,
+            share: share,
+            createdAt: new Date().toISOString()
+        });
+
+        closeGoalModal();
+    }
+
+    function deleteGoal(id) {
+        if (confirm("Naozaj chcete vymazať tento cieľ?")) {
+            db.collection('roi_goals').doc(id).delete();
         }
     }
 
     function renderFundsUI() {
-        document.getElementById('target-inv').value = fundTargets.investments;
-        document.getElementById('target-stock').value = fundTargets.stock;
-        document.getElementById('target-payout').value = fundTargets.payout;
-
         document.getElementById('fund-investments').innerText = `${fundsState.investments.toFixed(2)} €`;
         document.getElementById('fund-stock').innerText = `${fundsState.stock.toFixed(2)} €`;
         document.getElementById('fund-payout').innerText = `${fundsState.payout.toFixed(2)} €`;
-
-        updateProgressBar('inv', fundsState.investments, fundTargets.investments);
-        updateProgressBar('stock', fundsState.stock, fundTargets.stock);
-        updateProgressBar('payout', fundsState.payout, fundTargets.payout);
-    }
-
-    function updateProgressBar(key, current, target) {
-        let pct = target > 0 ? Math.min(100, Math.round((current / target) * 100)) : 0;
-        document.getElementById(`prog-${key}-pct`).innerText = `${pct}%`;
-        document.getElementById(`bar-${key}`).style.width = `${pct}%`;
-        document.getElementById(`milestone-${key}-txt`).innerText = `Cieľ: ${target}€`;
     }
 
     function renderProductProfitConfig() {
         const container = document.getElementById('product-profit-config-list');
         if (!container) return;
         if (products.length === 0) {
-            container.innerHTML = `<div class="text-xs text-slate-500 col-span-3">Žiadne produkty v sklade. Pridajte produkty.</div>`;
+            container.innerHTML = `<div class="text-xs text-slate-500 col-span-3">Žiadne produkty v sklade.</div>`;
             return;
         }
 
@@ -658,7 +651,7 @@
             <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 flex justify-between items-center text-xs">
                 <div>
                     <div class="font-bold text-slate-200">${p.name}</div>
-                    <div class="text-slate-400">Predajná: ${parseFloat(p.price).toFixed(2)} €</div>
+                    <div class="text-slate-400">Predaj: ${parseFloat(p.price).toFixed(2)} €</div>
                 </div>
                 <div class="flex items-center gap-1.5">
                     <span class="text-slate-500">Zisk:</span>
@@ -682,7 +675,7 @@
         if (fundsState[fundKey] < amount && !confirm("V kasičke nie je dostatok prostriedkov. Pokračovať do mínusu?")) return;
 
         fundsState[fundKey] -= amount;
-        saveFundsToDb();
+        db.collection('settings').doc('funds').set(fundsState);
 
         const fundNames = { investments: 'Investície', stock: 'Sklad', payout: 'Výplata' };
         db.collection('fund_logs').add({
@@ -713,7 +706,7 @@
                     <tr class="hover:bg-slate-950/40">
                         <td class="p-3 text-slate-400 text-xs">${log.timeStr}</td>
                         <td class="p-3 text-emerald-400 font-bold">${log.type}</td>
-                        <td class="p-3 text-slate-300 text-xs">Kasičky (Dynamicky)</td>
+                        <td class="p-3 text-slate-300 text-xs">ROI Ciele & Kasičky</td>
                         <td class="p-3 font-black text-emerald-400">+${parseFloat(log.amount).toFixed(2)} €</td>
                         <td class="p-3 text-slate-400 text-xs">Inv: +${log.split.investments.toFixed(2)}€ | Sklad: +${log.split.stock.toFixed(2)}€ | Výplata: +${log.split.payout.toFixed(2)}€</td>
                     </tr>
@@ -750,7 +743,7 @@
             document.getElementById('pin-modal').classList.add('hidden');
             document.getElementById('pin-modal').classList.remove('flex');
             document.getElementById('main-interface').classList.remove('hidden');
-            renderCategories(); renderProducts(); renderLoyaltyOptions(); renderRooms(); renderStock(); renderLoyaltyTable(); renderTransactionsTable(); renderFundsUI(); renderFundHistory(); renderCart(); initCharts();
+            renderCategories(); renderProducts(); renderLoyaltyOptions(); renderRooms(); renderStock(); renderLoyaltyTable(); renderTransactionsTable(); renderFundsUI(); renderRoiGoals(); renderFundHistory(); renderCart(); initCharts();
         } else { document.getElementById('pin-error').classList.remove('hidden'); clearPin(); }
     }
     function logout() { currentUser = null; enteredPin = ''; updatePinDots(); document.getElementById('main-interface').classList.add('hidden'); document.getElementById('pin-modal').classList.remove('hidden'); document.getElementById('pin-modal').classList.add('flex'); }
@@ -768,7 +761,7 @@
         if(tab === 'analytics') updateAnalyticsAndCharts();
         else if(tab === 'transactions') renderTransactionsTable();
         else if(tab === 'rooms') renderRooms();
-        else if(tab === 'funds') { renderFundsUI(); renderFundHistory(); renderProductProfitConfig(); }
+        else if(tab === 'funds') { renderFundsUI(); renderRoiGoals(); renderFundHistory(); renderProductProfitConfig(); }
     }
 
     // --- KATEGÓRIE & PRODUKTY ---
@@ -932,20 +925,15 @@
 
     function renderTransactionsTable() {
         const tbody = document.getElementById('transactions-table-body'); if(!tbody) return;
-        if(kdsTransactions.length === 0) { tbody.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-slate-500">Žiadne transakcie</td></tr>`; return; }
+        if(kdsTransactions.length === 0) { tbody.innerHTML = `<tr><td colspan="4" class="p-6 text-center text-slate-500">Žiadne transakcie</td></tr>`; return; }
         tbody.innerHTML = kdsTransactions.map(t => `
             <tr class="hover:bg-slate-950/40">
-                <td class="p-4"><input type="checkbox" ${t.includeInAnalytics ? 'checked' : ''} onchange="toggleTransactionAnalytics('${t.id}')" class="w-4 h-4 accent-emerald-500 rounded"></td>
                 <td class="p-4 text-slate-400 text-xs">${t.timeStr}</td>
                 <td class="p-4 font-bold text-slate-200">${t.room}</td>
                 <td class="p-4 text-slate-300 text-xs">${t.items.map(i => `${i.qty}x ${i.name}`).join(', ')}</td>
                 <td class="p-4 font-black text-emerald-400">${parseFloat(t.total).toFixed(2)} €</td>
             </tr>
         `).reverse().join('');
-    }
-    function toggleTransactionAnalytics(id) {
-        const t = kdsTransactions.find(item => item.id === id);
-        if (t) db.collection('transactions').doc(id).update({ includeInAnalytics: !t.includeInAnalytics });
     }
 
     function openPaymentModal() {
@@ -974,10 +962,9 @@
         const total = parseFloat(document.getElementById('total-val').innerText);
         if (partial <= 0 || partial >= total) { alert("Neplatná suma."); return; }
 
-        // Výpočet zisku z čiastočnej platby pomerne
-        let estimatedProfit = partial * 0.4; // alebo podľa priemeru zisku
-        processProfitToFunds(estimatedProfit, 'Čiastočná platba');
-        alert(`Čiastočná platba prijatá. Do kasičiek pripísaný zisk: +${estimatedProfit.toFixed(2)} €`);
+        let estimatedProfit = partial * 0.4;
+        processProfitToFundsAndGoals(estimatedProfit, 'Čiastočná platba');
+        alert(`Čiastočná platba prijatá! Zisk (+${estimatedProfit.toFixed(2)} €) bol rozdelený do cieľov a kasičiek.`);
         closePaymentModal();
     }
 
@@ -991,14 +978,13 @@
             totalProfit += profitPerUnit * item.qty;
         });
 
-        processProfitToFunds(totalProfit, method);
-        alert(`Platba úspešná! Zisk z objednávky (${totalProfit.toFixed(2)} €) bol rozdelený do kasičiek.`);
+        processProfitToFundsAndGoals(totalProfit, method);
+        alert(`Platba úspešná! Zisk z objednávky (${totalProfit.toFixed(2)} €) započítaný do ROI cieľov a kasičiek.`);
 
         db.collection('rooms').doc(room.id).update({ cart: [], selectedCardId: null });
         closePaymentModal();
     }
 
-    // --- PRODUKTY & SKLAD MODAL ---
     function openProductModal(editId = null) {
         document.getElementById('product-edit-id').value = editId || ''; renderCategories();
         if(editId) {
@@ -1053,7 +1039,6 @@
         `).join('');
     }
 
-    // --- IZBY & KARTY ---
     function renderRooms() {
         const grid = document.getElementById('rooms-list-grid'); if(!grid) return;
         grid.innerHTML = rooms.map(r => `
@@ -1074,7 +1059,7 @@
     }
     function renderLoyaltyTable() {
         const tbody = document.getElementById('loyalty-cards-table-body'); if(!tbody) return;
-        tbody.innerHTML = loyaltyCards.map(c => `<tr class="border-b border-slate-800"><td class="p-4 font-bold text-slate-200">${c.name}</td><td class="p-4 text-slate-400 font-mono text-xs">${c.code}</td><td class="p-4 text-amber-400 font-bold">${c.points}b</td><td class="p-4 text-emerald-400 font-bold">${c.discount}%</td><td class="p-4 text-right"><button onclick="deleteCard('${c.id}')" class="text-rose-400 text-xs bg-rose-500/10 p-2 rounded-lg"><i class="fa-solid fa-trash"></i></button></td></tr>`).join('');
+        tbody.innerHTML = loyaltyCards.map(c => `<tr class="border-b border-slate-800"><td class="p-4 font-bold text-slate-200">${c.name}</td><td class="p-4 text-slate-400 font-mono text-xs">${c.code}</td><td class="p-4 text-amber-400 font-bold">${c.points}b</td><td class="p-4 text-emerald-400 font-bold">${c.discount}%</td></tr>`).join('');
         renderLoyaltyOptions();
     }
     function openCardModal() { document.getElementById('card-name-input').value = ''; document.getElementById('card-code-input').value = ''; document.getElementById('card-modal').classList.remove('hidden'); document.getElementById('card-modal').classList.add('flex'); }
@@ -1084,7 +1069,6 @@
         const points = parseInt(document.getElementById('card-points-input').value) || 0; const discount = parseFloat(document.getElementById('card-discount-input').value) || 0;
         if(name && code) { db.collection('cards').add({ name, code, points, discount }); closeCardModal(); }
     }
-    function deleteCard(id) { if(confirm("Vymazať?")) db.collection('cards').doc(id).delete(); }
 
     function initCharts() {
         const ctxBar = document.getElementById('barChartHourly'); const ctxPie = document.getElementById('pieChartProducts'); if(!ctxBar || !ctxPie) return;
@@ -1104,11 +1088,7 @@
         if(document.getElementById('kpi-revenue')) document.getElementById('kpi-revenue').innerText = `${totalRevenue.toFixed(2)} €`;
         if(document.getElementById('kpi-orders')) document.getElementById('kpi-orders').innerText = activeOrdersCount;
         if(document.getElementById('kpi-items')) document.getElementById('kpi-items').innerText = `${totalItemsCount} ks`;
-        if(barChart) { barChart.data.labels = Object.keys(hourlyMap); barChart.data.datasets[0].data = Object.values(hourlyMap); barChart.update(); }
-        if(pieChart) { pieChart.data.labels = Object.keys(productSalesMap); pieChart.data.datasets[0].data = Object.values(productSalesMap); pieChart.update(); }
     }
-    function resetScreensaverTimer() {}
-    function hideScreensaver() {}
 </script>
 </body>
 </html>
