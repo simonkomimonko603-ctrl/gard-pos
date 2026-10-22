@@ -290,6 +290,27 @@
     </div>
 </div>
 
+    <!-- MODAL: NOVÁ QR OBJEDNÁVKA (S PÍPANÍM) -->
+<div id="qr-incoming-modal" class="fixed inset-0 bg-black/90 hidden items-center justify-center modal z-50 backdrop-blur-md animate-pulse">
+    <div class="bg-slate-900 border-2 border-emerald-500 rounded-3xl shadow-2xl w-[450px] p-6 text-slate-100">
+        <div class="flex items-center gap-3 mb-4 text-emerald-400">
+            <i class="fa-solid fa-bell text-3xl animate-bounce"></i>
+            <div>
+                <h3 class="text-xl font-black">Nová QR Objednávka!</h3>
+                <p id="incoming-qr-table" class="text-xs text-slate-400">Stôl: --</p>
+            </div>
+        </div>
+        <div id="incoming-qr-items" class="bg-slate-950 border border-slate-800 p-4 rounded-2xl max-h-48 overflow-y-auto mb-4 space-y-2 text-sm"></div>
+        <div class="flex justify-between items-center font-black text-lg mb-6 px-1">
+            <span>Celkom:</span>
+            <span id="incoming-qr-total" class="text-emerald-400 text-2xl">0.00 €</span>
+        </div>
+        <button onclick="acceptIncomingQrOrder()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-black py-4 rounded-2xl text-base shadow-lg shadow-emerald-600/30">
+            OK - Potvrdiť a prijať objednávku
+        </button>
+    </div>
+</div>
+    
 <!-- MODAL NA PRIDANIE CIEĽA (ROI) -->
 <div id="goal-modal" class="fixed inset-0 bg-black/80 hidden items-center justify-center modal z-50 backdrop-blur-md">
     <div class="bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl w-96 p-6 text-slate-100">
