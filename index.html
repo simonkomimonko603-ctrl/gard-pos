@@ -411,6 +411,11 @@
     let loyaltyCards = [];
     let kdsTransactions = [];
 
+    // Zvukový alarm a fronta QR objednávok
+    let pendingQrOrders = [];
+    let currentAlertOrder = null;
+    let beepInterval = null;
+
     // Počiatočný stav kasičiek
     let fundsState = { investments: 15, stock: 20, payout: 0 };
     let fundLogs = [];
