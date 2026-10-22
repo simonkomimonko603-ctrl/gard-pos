@@ -200,56 +200,46 @@
 
             <!-- TAB: KASIČKY A ROI CIELE -->
             <div id="view-funds" class="h-full hidden flex-col gap-6 overflow-y-auto">
-                
-                <!-- SEKCIA 1: ROI & SPLÁCANIE CIEĽOV (Vlastné ciele) -->
                 <div class="bg-slate-900/90 border border-amber-500/30 p-6 rounded-3xl shadow-2xl backdrop-blur-md">
                     <div class="flex justify-between items-center mb-4">
                         <div>
                             <h2 class="text-xl font-black text-amber-400 flex items-center gap-2">
                                 <i class="fa-solid fa-bullseye"></i> ROI & Splácanie cieľov (Vlastné Investície)
                             </h2>
-                            <p class="text-xs text-slate-400">Nastavte si ciele splácania (napr. kávovar, prerábka). Zisk z predaja nápojov ich bude automaticky napĺňať.</p>
+                            <p class="text-xs text-slate-400">Nastavte si ciele splácania. Zisk ich bude automaticky napĺňať.</p>
                         </div>
                         <button onclick="openGoalModal()" class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-black px-4 py-2.5 rounded-xl text-xs transition flex items-center gap-2">
                             <i class="fa-solid fa-plus"></i> Pridať nový cieľ / investíciu
                         </button>
                     </div>
-
-                    <!-- Zoznam cieľov -->
-                    <div id="goals-list-container" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <!-- Generované dynamicky -->
-                    </div>
+                    <div id="goals-list-container" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
                 </div>
 
-                <!-- SEKCIA 2: ŠTANDARDNÉ KASIČKY -->
                 <div>
                     <h3 class="text-sm font-bold text-slate-400 uppercase mb-3 flex items-center gap-2">
                         <i class="fa-solid fa-vault text-slate-500"></i> Trojkasičkový systém
                     </h3>
                     <div class="grid grid-cols-3 gap-4">
                         <div class="bg-slate-900/80 border border-slate-800 p-5 rounded-2xl shadow-xl border-l-4 border-l-emerald-500">
-                            <div class="text-xs font-semibold text-slate-400 uppercase">Investície (15 € štart)</div>
+                            <div class="text-xs font-semibold text-slate-400 uppercase">Investície</div>
                             <div id="fund-investments" class="text-3xl font-black text-emerald-400 mt-1">15.00 €</div>
                         </div>
                         <div class="bg-slate-900/80 border border-slate-800 p-5 rounded-2xl shadow-xl border-l-4 border-l-amber-500">
-                            <div class="text-xs font-semibold text-slate-400 uppercase">Sklad (20 € štart)</div>
+                            <div class="text-xs font-semibold text-slate-400 uppercase">Sklad</div>
                             <div id="fund-stock" class="text-3xl font-black text-amber-400 mt-1">20.00 €</div>
                         </div>
                         <div class="bg-slate-900/80 border border-slate-800 p-5 rounded-2xl shadow-xl border-l-4 border-l-blue-500">
-                            <div class="text-xs font-semibold text-slate-400 uppercase">Výplata (0 € štart)</div>
+                            <div class="text-xs font-semibold text-slate-400 uppercase">Výplata</div>
                             <div id="fund-payout" class="text-3xl font-black text-blue-400 mt-1">0.00 €</div>
                         </div>
                     </div>
                 </div>
 
-                <!-- SEKCIA 3: NASTAVENIE ZISKU PRODUKTOV -->
                 <div class="bg-slate-900/80 border border-slate-800 p-6 rounded-2xl shadow-xl">
-                    <h3 class="text-lg font-bold text-slate-100 mb-2 flex items-center gap-2"><i class="fa-solid fa-chart-line text-emerald-400"></i> Nastavenie zisku na produkt / nápoj</h3>
-                    <p class="text-xs text-slate-400 mb-4">Zadajte čistý zisk. Systém ho započíta do prírastkov do ROI cieľov aj do kasičiek pri predaji.</p>
+                    <h3 class="text-lg font-bold text-slate-100 mb-2 flex items-center gap-2"><i class="fa-solid fa-chart-line text-emerald-400"></i> Nastavenie zisku na produkt</h3>
                     <div id="product-profit-config-list" class="grid grid-cols-1 sm:grid-cols-3 gap-3 max-h-48 overflow-y-auto pr-1"></div>
                 </div>
 
-                <!-- SEKCIA 4: VÝDAVKY -->
                 <div class="bg-slate-900/80 border border-slate-800 p-6 rounded-2xl shadow-xl">
                     <h3 class="text-lg font-bold text-slate-100 mb-4 flex items-center gap-2"><i class="fa-solid fa-minus-circle text-rose-400"></i> Zaznamenať Výdavok</h3>
                     <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
@@ -260,9 +250,8 @@
                     </div>
                 </div>
 
-                <!-- SEKCIA 5: HISTÓRIA -->
                 <div class="bg-slate-900/80 border border-slate-800 p-6 rounded-2xl shadow-xl">
-                    <h3 class="text-lg font-bold text-slate-100 mb-4 flex items-center gap-2"><i class="fa-solid fa-list-check text-slate-400"></i> História pohybov v kasičkách</h3>
+                    <h3 class="text-lg font-bold text-slate-100 mb-4 flex items-center gap-2"><i class="fa-solid fa-list-check text-slate-400"></i> História pohybov</h3>
                     <div class="overflow-x-auto">
                         <table class="w-full text-left border-collapse">
                             <thead><tr class="border-b border-slate-800 bg-slate-950/60 text-xs font-semibold text-slate-400 uppercase"><th class="p-3">Čas</th><th class="p-3">Typ</th><th class="p-3">Kasička</th><th class="p-3">Suma</th><th class="p-3">Poznámka</th></tr></thead>
@@ -290,7 +279,7 @@
     </div>
 </div>
 
-    <!-- MODAL: NOVÁ QR OBJEDNÁVKA (S PÍPANÍM) -->
+<!-- MODAL: NOVÁ QR OBJEDNÁVKA (S PÍPANÍM) -->
 <div id="qr-incoming-modal" class="fixed inset-0 bg-black/90 hidden items-center justify-center modal z-50 backdrop-blur-md animate-pulse">
     <div class="bg-slate-900 border-2 border-emerald-500 rounded-3xl shadow-2xl w-[450px] p-6 text-slate-100">
         <div class="flex items-center gap-3 mb-4 text-emerald-400">
@@ -310,7 +299,7 @@
         </button>
     </div>
 </div>
-    
+
 <!-- MODAL NA PRIDANIE CIEĽA (ROI) -->
 <div id="goal-modal" class="fixed inset-0 bg-black/80 hidden items-center justify-center modal z-50 backdrop-blur-md">
     <div class="bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl w-96 p-6 text-slate-100">
@@ -411,17 +400,14 @@
     let loyaltyCards = [];
     let kdsTransactions = [];
 
+    let fundsState = { investments: 15, stock: 20, payout: 0 };
+    let fundLogs = [];
+    let roiGoals = [];
+
     // Zvukový alarm a fronta QR objednávok
     let pendingQrOrders = [];
     let currentAlertOrder = null;
     let beepInterval = null;
-
-    // Počiatočný stav kasičiek
-    let fundsState = { investments: 15, stock: 20, payout: 0 };
-    let fundLogs = [];
-
-    // ROI Vlastné ciele
-    let roiGoals = [];
 
     let activeRoomId = 'main';
     let selectedCategory = 'All';
@@ -512,13 +498,129 @@
             fundLogs.sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
             renderFundHistory();
         });
+
+        // POČÚVANIE PRICHÁDZAJÚCICH QR OBJEDNÁVOK (S PÍPANÍM)
+        db.collection('qr_orders').where('status', '==', 'pending').onSnapshot(snapshot => {
+            pendingQrOrders = [];
+            snapshot.forEach(doc => pendingQrOrders.push({ id: doc.id, ...doc.data() }));
+            
+            if (pendingQrOrders.length > 0 && !currentAlertOrder && currentUser) {
+                showNextQrAlert();
+            }
+        });
+    }
+
+    // --- ZVUKOVÝ ALARM A VYSKAKOVACIE OKNO PRE QR ---
+    function playBeepSound() {
+        try {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(880, ctx.currentTime);
+            gain.gain.setValueAtTime(0.3, ctx.currentTime);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.3);
+        } catch(e) { console.log("Audio context error", e); }
+    }
+
+    function showNextQrAlert() {
+        if (pendingQrOrders.length === 0) {
+            currentAlertOrder = null;
+            document.getElementById('qr-incoming-modal').classList.add('hidden');
+            document.getElementById('qr-incoming-modal').classList.remove('flex');
+            clearInterval(beepInterval);
+            beepInterval = null;
+            return;
+        }
+
+        currentAlertOrder = pendingQrOrders[0];
+        document.getElementById('incoming-qr-table').innerText = `Stôl: ${currentAlertOrder.room}`;
+        document.getElementById('incoming-qr-total').innerText = `${parseFloat(currentAlertOrder.total).toFixed(2)} €`;
+
+        const itemsContainer = document.getElementById('incoming-qr-items');
+        itemsContainer.innerHTML = currentAlertOrder.items.map(i => `
+            <div class="flex justify-between items-center text-slate-300">
+                <span>${i.qty}x ${i.name}</span>
+                <span class="font-bold text-emerald-400">${(i.price * i.qty).toFixed(2)} €</span>
+            </div>
+        `).join('');
+
+        document.getElementById('qr-incoming-modal').classList.remove('hidden');
+        document.getElementById('qr-incoming-modal').classList.remove('flex');
+        document.getElementById('qr-incoming-modal').classList.add('flex');
+
+        if (!beepInterval) {
+            playBeepSound();
+            beepInterval = setInterval(() => { playBeepSound(); }, 2000);
+        }
+    }
+
+    async function acceptIncomingQrOrder() {
+        if (!currentAlertOrder) return;
+
+        clearInterval(beepInterval);
+        beepInterval = null;
+
+        const order = currentAlertOrder;
+
+        let room = rooms.find(r => r.name.toLowerCase() === order.room.toLowerCase());
+        if (!room) {
+            const docRef = await db.collection('rooms').add({ name: order.room, cart: [], selectedCardId: order.cardId || null });
+            room = { id: docRef.id, name: order.room, cart: [], selectedCardId: order.cardId || null };
+        }
+
+        if (!room.cart) room.cart = [];
+        order.items.forEach(qrItem => {
+            const prod = products.find(p => p.id === qrItem.id) || { id: qrItem.id, name: qrItem.name, price: qrItem.price, unit: qrItem.unit || 'ks', profit: qrItem.price * 0.4 };
+            room.cart.push({ product: prod, qty: qrItem.qty, status: 'sent' });
+        });
+        await db.collection('rooms').doc(room.id).update({ cart: room.cart, selectedCardId: order.cardId || room.selectedCardId });
+
+        await db.collection('transactions').add({
+            timestamp: order.timestamp,
+            timeStr: order.timeStr,
+            hour: new Date(order.timestamp).getHours(),
+            room: order.room,
+            total: order.total,
+            includeInAnalytics: true,
+            isQrOrder: true,
+            items: order.items
+        });
+
+        let totalProfit = 0;
+        order.items.forEach(qrItem => {
+            const p = products.find(prod => prod.id === qrItem.id);
+            const profitPerUnit = p ? (p.profit || (p.price * 0.4)) : (qrItem.price * 0.4);
+            totalProfit += profitPerUnit * qrItem.qty;
+        });
+        processProfitToFundsAndGoals(totalProfit, `QR (${order.room})`);
+
+        order.items.forEach(qrItem => {
+            const p = products.find(prod => prod.id === qrItem.id);
+            if (p) {
+                db.collection('products').doc(p.id).update({
+                    stock: Math.max(0, p.stock - qrItem.qty)
+                });
+            }
+        });
+
+        await db.collection('qr_orders').doc(order.id).update({ status: 'processed' });
+
+        currentAlertOrder = null;
+        document.getElementById('qr-incoming-modal').classList.add('hidden');
+        document.getElementById('qr-incoming-modal').classList.remove('flex');
+
+        selectRoom(room.id);
+        showNextQrAlert();
     }
 
     // --- SPRACOVANIE ZISKU A PRIPÍSANIE DO ROI CIEĽOV AJ KASIČIEK ---
     function processProfitToFundsAndGoals(profitAmount, sourceName) {
         if (profitAmount <= 0) return;
 
-        // 1. Pripísanie do nastavených ROI cieľov
         roiGoals.forEach(goal => {
             if (goal.current < goal.target) {
                 const addAmount = profitAmount * ((goal.share || 100) / 100);
@@ -534,7 +636,6 @@
             }
         });
 
-        // 2. Pripísanie do 3 Kasičiek podľa pravidiel (30/40/30 resp. 50/0/50 pri Sklad >= 100)
         let invPct = 0.30;
         let stockPct = 0.40;
         let payoutPct = 0.30;
@@ -593,7 +694,7 @@
                         <div>
                             <div class="font-bold text-slate-100 flex items-center gap-2">
                                 <span>${goal.name}</span>
-                                ${isDone ? '<span class="text-[10px] bg-emerald-500/20 text-emerald-400 font-bold px-2 py-0.5 rounded-full border border-emerald-500/30">SPLANÉ</span>' : ''}
+                                ${isDone ? '<span class="text-[10px] bg-emerald-500/20 text-emerald-400 font-bold px-2 py-0.5 rounded-full border border-emerald-500/30">SPLENÉ</span>' : ''}
                             </div>
                             <div class="text-xs text-slate-400 mt-0.5">Podiel zo zisku: ${goal.share || 100}%</div>
                         </div>
@@ -770,6 +871,7 @@
             document.getElementById('pin-modal').classList.remove('flex');
             document.getElementById('main-interface').classList.remove('hidden');
             renderCategories(); renderProducts(); renderLoyaltyOptions(); renderRooms(); renderStock(); renderLoyaltyTable(); renderTransactionsTable(); renderFundsUI(); renderRoiGoals(); renderFundHistory(); renderCart(); initCharts();
+            if (pendingQrOrders.length > 0) showNextQrAlert();
         } else { document.getElementById('pin-error').classList.remove('hidden'); clearPin(); }
     }
     function logout() { currentUser = null; enteredPin = ''; updatePinDots(); document.getElementById('main-interface').classList.add('hidden'); document.getElementById('pin-modal').classList.remove('hidden'); document.getElementById('pin-modal').classList.add('flex'); }
