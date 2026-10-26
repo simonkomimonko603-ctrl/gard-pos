@@ -23,6 +23,10 @@
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: #0f172a; }
         ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+                @keyframes qrFlash { 0%,100% { background-color: rgba(0,0,0,.92); } 50% { background-color: rgba(220,38,38,.85); } }
+        @keyframes qrCardFlash { 0%,100% { border-color: #10b981; box-shadow: 0 0 0 0 rgba(16,185,129,.7); } 50% { border-color: #ef4444; box-shadow: 0 0 60px 10px rgba(239,68,68,.8); } }
+        #qr-incoming-modal.flex { animation: qrFlash .8s infinite; }
+        #qr-incoming-modal.flex > div { animation: qrCardFlash .8s infinite; }
         @keyframes pulseGlow {
             0%, 100% { transform: scale(1); opacity: 1; }
             50% { transform: scale(1.08); opacity: 0.8; }
@@ -280,12 +284,12 @@
 </div>
 
 <!-- MODAL: NOVÁ QR OBJEDNÁVKA (S PÍPANÍM) -->
-<div id="qr-incoming-modal" class="fixed inset-0 bg-black/90 hidden items-center justify-center modal z-50 backdrop-blur-md animate-pulse">
-    <div class="bg-slate-900 border-2 border-emerald-500 rounded-3xl shadow-2xl w-[450px] p-6 text-slate-100">
+<div id="qr-incoming-modal" class="fixed inset-0 bg-black/90 hidden items-center justify-center modal z-50 backdrop-blur-md">
+    <div class="bg-slate-900 border-4 border-emerald-500 rounded-3xl shadow-2xl w-[450px] p-6 text-slate-100">
         <div class="flex items-center gap-3 mb-4 text-emerald-400">
             <i class="fa-solid fa-bell text-3xl animate-bounce"></i>
             <div>
-                <h3 class="text-xl font-black">Nová QR Objednávka!</h3>
+                <h3 id="incoming-qr-headline" class="text-xl font-black">Nová QR Objednávka!</h3>
                 <p id="incoming-qr-table" class="text-xs text-slate-400">Stôl: --</p>
             </div>
         </div>
@@ -511,19 +515,50 @@
     }
 
     // --- ZVUKOVÝ ALARM A VYSKAKOVACIE OKNO PRE QR ---
+    let sharedAudioCtx = null;
+    function getAudioCtx() {
+        if (!sharedAudioCtx) sharedAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (sharedAudioCtx.state === 'suspended') sharedAudioCtx.resume();
+        return sharedAudioCtx;
+    }
+    // Browsers allow sound only after a user tap - unlock it on the first interaction (PIN login counts)
+    ['pointerdown','keydown','touchstart'].forEach(ev => window.addEventListener(ev, () => { try { getAudioCtx(); } catch(e){} }, { once: false, passive: true }));
+
     function playBeepSound() {
         try {
-            const ctx = new (window.AudioContext || window.webkitAudioContext)();
-            const osc = ctx.createOscillator();
-            const gain = ctx.createGain();
-            osc.type = 'sine';
-            osc.frequency.setValueAtTime(880, ctx.currentTime);
-            gain.gain.setValueAtTime(0.3, ctx.currentTime);
-            osc.connect(gain);
-            gain.connect(ctx.destination);
-            osc.start();
-            osc.stop(ctx.currentTime + 0.3);
+            const ctx = getAudioCtx();
+            [880, 660, 880].forEach((freq, n) => {
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                const t0 = ctx.currentTime + n * 0.22;
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(freq, t0);
+                gain.gain.setValueAtTime(0.25, t0);
+                gain.gain.exponentialRampToValueAtTime(0.001, t0 + 0.2);
+                osc.connect(gain); gain.connect(ctx.destination);
+                osc.start(t0); osc.stop(t0 + 0.2);
+            });
+            if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
         } catch(e) { console.log("Audio context error", e); }
+    }
+
+    // blinking browser tab title + screen wake lock while an order is waiting
+    let titleBlinkInterval = null;
+    let wakeLockObj = null;
+    const baseTitle = document.title;
+    function startAlertExtras() {
+        if (!titleBlinkInterval) {
+            let on = false;
+            titleBlinkInterval = setInterval(() => { on = !on; document.title = on ? '🔔 NOVÁ OBJEDNÁVKA!' : baseTitle; }, 700);
+        }
+        if ('wakeLock' in navigator && !wakeLockObj) {
+            navigator.wakeLock.request('screen').then(l => { wakeLockObj = l; l.addEventListener('release', () => { wakeLockObj = null; }); }).catch(() => {});
+        }
+    }
+    function stopAlertExtras() {
+        clearInterval(titleBlinkInterval); titleBlinkInterval = null;
+        document.title = baseTitle;
+        if (wakeLockObj) { wakeLockObj.release().catch(() => {}); wakeLockObj = null; }
     }
 
     function showNextQrAlert() {
@@ -533,11 +568,13 @@
             document.getElementById('qr-incoming-modal').classList.remove('flex');
             clearInterval(beepInterval);
             beepInterval = null;
+            stopAlertExtras();
             return;
         }
 
         currentAlertOrder = pendingQrOrders[0];
         document.getElementById('incoming-qr-table').innerText = `Stôl: ${currentAlertOrder.room}`;
+        document.getElementById('incoming-qr-headline').innerText = `Stôl ${currentAlertOrder.room} si objednal: ` + currentAlertOrder.items.map(i => `${i.qty}× ${i.name}`).join(', ');
         document.getElementById('incoming-qr-total').innerText = `${parseFloat(currentAlertOrder.total).toFixed(2)} €`;
 
         const itemsContainer = document.getElementById('incoming-qr-items');
@@ -552,9 +589,10 @@
         document.getElementById('qr-incoming-modal').classList.remove('flex');
         document.getElementById('qr-incoming-modal').classList.add('flex');
 
+        startAlertExtras();
         if (!beepInterval) {
             playBeepSound();
-            beepInterval = setInterval(() => { playBeepSound(); }, 2000);
+            beepInterval = setInterval(() => { playBeepSound(); }, 1800);
         }
     }
 
@@ -563,6 +601,7 @@
 
         clearInterval(beepInterval);
         beepInterval = null;
+        stopAlertExtras();
 
         const order = currentAlertOrder;
 
