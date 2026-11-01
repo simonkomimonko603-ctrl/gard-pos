@@ -618,7 +618,7 @@
         if (!room.cart) room.cart = [];
         order.items.forEach(qrItem => {
             const prod = products.find(p => p.id === qrItem.id) || { id: qrItem.id, name: qrItem.name, price: qrItem.price, unit: qrItem.unit || 'ks', profit: qrItem.price * 0.4 };
-            room.cart.push({ product: prod, qty: qrItem.qty, status: 'sent' });
+            room.cart.push({ product: prod, qty: qrItem.qty, status: 'sent', ...(order.cardId ? { earnCardId: order.cardId, earnDisc: 0 } : {}) });
         });
         await db.collection('rooms').doc(room.id).update({ cart: room.cart, selectedCardId: order.cardId || room.selectedCardId });
 
@@ -653,7 +653,7 @@
         // Body z QR objednávky: 1 € = 1 bod
         if (order.cardId) {
             const qrCard = loyaltyCards.find(c => c.id === order.cardId);
-            const qrPts = Math.floor((parseFloat(order.total) || 0) + 1e-9);
+            const qrPts = Math.round(parseFloat(order.total) || 0);
             if (qrCard && qrPts > 0) db.collection('cards').doc(qrCard.id).update({ points: firebase.firestore.FieldValue.increment(qrPts) });
         }
 
@@ -1064,6 +1064,12 @@
             }
         }
 
+        // Odstraňovanie už odoslanej položky: odpočítať body, ktoré za ňu karta dostala
+        if (delta < 0 && status === 'sent' && item.earnCardId) {
+            const back = Math.round(item.product.price * (1 - (item.earnDisc || 0) / 100) * Math.abs(delta));
+            if (back > 0) db.collection('cards').doc(item.earnCardId).update({ points: firebase.firestore.FieldValue.increment(-back) });
+        }
+
         item.qty += delta;
         if (item.qty <= 0) room.cart.splice(itemIndex, 1);
         db.collection('rooms').doc(room.id).update({ cart: room.cart });
@@ -1091,7 +1097,19 @@
         db.collection('rooms').doc(room.id).update({ cart: room.cart });
     }
 
-    function clearCart() { const room = getCurrentRoom(); db.collection('rooms').doc(room.id).update({ cart: [], selectedCardId: null }); }
+    function clearCart() {
+        const room = getCurrentRoom();
+        const back = {};
+        (room.cart || []).forEach(item => {
+            if ((item.status || 'new') === 'sent' && item.earnCardId && item.payMode !== 'points') {
+                back[item.earnCardId] = (back[item.earnCardId] || 0) + Math.round(item.product.price * (1 - (item.earnDisc || 0) / 100) * item.qty);
+            }
+        });
+        Object.keys(back).forEach(cid => {
+            if (back[cid] > 0) db.collection('cards').doc(cid).update({ points: firebase.firestore.FieldValue.increment(-back[cid]) });
+        });
+        db.collection('rooms').doc(room.id).update({ cart: [], selectedCardId: null });
+    }
 
     function renderCart() {
         const room = getCurrentRoom(); const container = document.getElementById('order-items'); if(!container) return;
@@ -1180,7 +1198,7 @@
         let pointsEarned = 0;
         if (card) {
             const discPct = parseFloat(card.discount) || 0;
-            pointsEarned = Math.floor(newItemsSubtotal * (1 - discPct / 100) + 1e-9);
+            pointsEarned = Math.round(newItemsSubtotal * (1 - discPct / 100));
             const net = pointsEarned - pointsToSpend;
             if (net !== 0) db.collection('cards').doc(card.id).update({ points: firebase.firestore.FieldValue.increment(net) });
         }
@@ -1192,7 +1210,13 @@
             items: newItems.map(i => ({ id: i.product.id, name: i.product.name, qty: i.qty, unit: i.product.unit, price: i.product.price, payMode: i.payMode || 'eur', pointsPrice: parseFloat(i.product.pointsPrice) || 0 }))
         });
 
-        room.cart.forEach(item => { if ((item.status || 'new') === 'new') item.status = 'sent'; });
+        const earnDisc = card ? (parseFloat(card.discount) || 0) : 0;
+        room.cart.forEach(item => {
+            if ((item.status || 'new') === 'new') {
+                item.status = 'sent';
+                if (card && item.payMode !== 'points') { item.earnCardId = card.id; item.earnDisc = earnDisc; }
+            }
+        });
         db.collection('rooms').doc(room.id).update({ cart: room.cart });
 
         let msg = 'Odoslané na KDS!';
