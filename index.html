@@ -750,15 +750,18 @@
             }
 
             const newCart = [...(room.cart || [])];
+            const qrTxRef = db.collection('transactions').doc();
+            const qrLogId = db.collection('fund_logs').doc().id;
+            const qrSplitPct = getProfitSplitPct();
             orderItems.forEach(qrItem => {
                 const prod = products.find(p => p.id === qrItem.id) || { id: qrItem.id, name: qrItem.name, price: qrItem.price, unit: qrItem.unit || 'ks', profit: qrItem.price * 0.4 };
                 // profitCounted: zisk z QR objednávky sa pripíše hneď tu, pri platbe sa už nesmie počítať druhýkrát
-                newCart.push({ product: prod, qty: qrItem.qty, status: 'sent', profitCounted: true, ...(order.cardId ? { earnCardId: order.cardId, earnDisc: 0 } : {}) });
+                newCart.push({ product: prod, qty: qrItem.qty, status: 'sent', profitCounted: true, txId: qrTxRef.id, logId: qrLogId, splitPct: qrSplitPct, profitUnit: (prod.profit || (prod.price * 0.4)), ...(order.cardId ? { earnCardId: order.cardId, earnDisc: 0 } : {}) });
             });
             if (isNewRoom) batch.set(roomRef, { name: roomName, cart: newCart, selectedCardId: order.cardId || null });
             else batch.update(roomRef, { cart: newCart, selectedCardId: order.cardId || room.selectedCardId || null });
 
-            batch.set(db.collection('transactions').doc(), {
+            batch.set(qrTxRef, {
                 timestamp: ts, timeStr: timeStr, hour: new Date(ts).getHours(), room: roomName,
                 total: orderTotal, includeInAnalytics: true, isQrOrder: true, items: orderItems
             });
@@ -789,7 +792,7 @@
                 toast('Spojenie je pomalé – objednávka sa dokončí po obnovení pripojenia (neprijímaj ju znova).', 'warn');
             }
 
-            processProfitToFundsAndGoals(totalProfit, `QR (${roomName})`);
+            processProfitToFundsAndGoals(totalProfit, `QR (${roomName})`, { logId: qrLogId, splitPct: qrSplitPct });
 
             currentAlertOrder = null;
             document.getElementById('qr-incoming-modal').classList.add('hidden');
@@ -808,7 +811,12 @@
     }
 
     // --- SPRACOVANIE ZISKU A PRIPÍSANIE DO ROI CIEĽOV AJ KASIČIEK ---
-    function processProfitToFundsAndGoals(profitAmount, sourceName) {
+    function getProfitSplitPct() {
+        if ((parseFloat(fundsState.stock) || 0) >= 100) return { investments: 0.5, stock: 0, payout: 0.5 };
+        return { investments: 0.3, stock: 0.4, payout: 0.3 };
+    }
+
+    function processProfitToFundsAndGoals(profitAmount, sourceName, opts = {}) {
         if (!(profitAmount > 0)) return;
         const FV = firebase.firestore.FieldValue;
 
@@ -830,20 +838,11 @@
             }
         });
 
-        let invPct = 0.30;
-        let stockPct = 0.40;
-        let payoutPct = 0.30;
-
-        if ((parseFloat(fundsState.stock) || 0) >= 100) {
-            invPct = 0.50;
-            stockPct = 0.00;
-            payoutPct = 0.50;
-        }
-
+        const pct = opts.splitPct || getProfitSplitPct();
         const split = {
-            investments: profitAmount * invPct,
-            stock: profitAmount * stockPct,
-            payout: profitAmount * payoutPct
+            investments: profitAmount * pct.investments,
+            stock: profitAmount * pct.stock,
+            payout: profitAmount * pct.payout
         };
 
         // atomické pripočítanie (neprepisuje celý dokument)
@@ -853,7 +852,8 @@
             payout: FV.increment(split.payout)
         }, { merge: true });
 
-        db.collection('fund_logs').add({
+        const profitLogRef = opts.logId ? db.collection('fund_logs').doc(opts.logId) : db.collection('fund_logs').doc();
+        profitLogRef.set({
             timestamp: new Date().toISOString(),
             timeStr: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
             type: `Zisk (${sourceName})`,
@@ -861,6 +861,67 @@
             split: split,
             note: `Rozdelené do kasičiek a započítané do ROI cieľov`
         });
+    }
+
+    // --- STORNO ODOSLANEJ POLOŽKY: vráti zisk z kasičiek aj cieľov, sklad a označí transakciu ako prečiarknutú ---
+    function voidSentItem(item, qty) {
+        if (!item || !(qty > 0) || item.payMode === 'points') return;
+        const FV = firebase.firestore.FieldValue;
+        const prod = products.find(x => x.id === item.product.id);
+
+        if (prod && isStockTracked(prod)) db.collection('products').doc(prod.id).update({ stock: FV.increment(qty) });
+
+        if (item.profitCounted) {
+            const unit = item.profitUnit != null ? (parseFloat(item.profitUnit) || 0)
+                : (prod ? (prod.profit || (prod.price * 0.4)) : ((parseFloat(item.product.price) || 0) * 0.4));
+            const profit = unit * qty;
+            if (profit > 0) {
+                const pct = item.splitPct || getProfitSplitPct();
+                const split = { investments: profit * pct.investments, stock: profit * pct.stock, payout: profit * pct.payout };
+                db.collection('settings').doc('funds').set({
+                    investments: FV.increment(-split.investments),
+                    stock: FV.increment(-split.stock),
+                    payout: FV.increment(-split.payout)
+                }, { merge: true });
+
+                roiGoals.forEach(goal => {
+                    const cur = parseFloat(goal.current) || 0;
+                    const take = Math.min(cur, profit * ((goal.share || 100) / 100));
+                    if (take > 0) {
+                        db.collection('roi_goals').doc(goal.id).update({ current: FV.increment(-take) });
+                        goal.current = cur - take;
+                    }
+                });
+
+                if (item.logId) db.collection('fund_logs').doc(item.logId).update({ voidedAmount: FV.increment(profit) }).catch(() => {});
+                db.collection('fund_logs').add({
+                    timestamp: new Date().toISOString(),
+                    timeStr: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                    type: 'Storno',
+                    fund: 'Kasičky & ciele',
+                    amount: -profit,
+                    note: `Zrušené: ${qty}× ${item.product.name}`
+                });
+            }
+        }
+
+        if (item.txId) {
+            const tx = kdsTransactions.find(t => t.id === item.txId);
+            if (tx && Array.isArray(tx.items)) {
+                const items = tx.items.map(i => ({ ...i }));
+                const it = items.find(i => i.id === item.product.id && (i.payMode || 'eur') === (item.payMode || 'eur'));
+                if (it) {
+                    const v = Math.min(qty, (parseFloat(it.qty) || 0) - (it.voidedQty || 0));
+                    if (v > 0) {
+                        it.voidedQty = (it.voidedQty || 0) + v;
+                        const origTotal = tx.originalTotal != null ? tx.originalTotal : (parseFloat(tx.total) || 0);
+                        const newTotal = Math.max(0, (parseFloat(tx.total) || 0) - (parseFloat(it.price) || 0) * v);
+                        db.collection('transactions').doc(tx.id).update({ items: items, total: newTotal, originalTotal: origTotal });
+                        tx.items = items; tx.total = newTotal; tx.originalTotal = origTotal;
+                    }
+                }
+            }
+        }
     }
 
     function triggerConfetti() {
@@ -1063,7 +1124,7 @@
                         <td class="p-3 text-slate-400 text-xs">${log.timeStr}</td>
                         <td class="p-3 text-emerald-400 font-bold">${esc(log.type)}</td>
                         <td class="p-3 text-slate-300 text-xs">ROI Ciele & Kasičky</td>
-                        <td class="p-3 font-black text-emerald-400">+${parseFloat(log.amount).toFixed(2)} €</td>
+                        <td class="p-3 font-black text-emerald-400">${(log.voidedAmount || 0) > 0 ? `<s class="text-rose-400/80">+${parseFloat(log.amount).toFixed(2)} €</s>${(parseFloat(log.amount) - log.voidedAmount) > 0.004 ? ` <span class="text-xs">+${(parseFloat(log.amount) - log.voidedAmount).toFixed(2)} €</span>` : ''}` : `+${parseFloat(log.amount).toFixed(2)} €`}</td>
                         <td class="p-3 text-slate-400 text-xs">Inv: +${log.split.investments.toFixed(2)}€ | Sklad: +${log.split.stock.toFixed(2)}€ | Výplata: +${log.split.payout.toFixed(2)}€</td>
                     </tr>
                 `;
@@ -1307,6 +1368,8 @@
             if (back > 0) db.collection('cards').doc(item.earnCardId).update({ points: firebase.firestore.FieldValue.increment(-back) });
         }
 
+        if (delta < 0 && status === 'sent') voidSentItem(item, Math.min(Math.abs(delta), item.qty));
+
         item.qty += delta;
         if (item.qty <= 0) room.cart.splice(itemIndex, 1);
         db.collection('rooms').doc(room.id).update({ cart: room.cart });
@@ -1340,6 +1403,7 @@
         if (!confirm(`Vynulovať celý účet "${room.name}"?\nOdoslané položky sa zmažú a body za ne sa odpočítajú späť.`)) return;
         const back = {};
         (room.cart || []).forEach(item => {
+            if ((item.status || 'new') === 'sent') voidSentItem(item, item.qty);
             if ((item.status || 'new') === 'sent' && item.earnCardId && item.payMode !== 'points') {
                 back[item.earnCardId] = (back[item.earnCardId] || 0) + Math.round(item.product.price * (1 - (item.earnDisc || 0) / 100) * item.qty);
             }
@@ -1425,6 +1489,7 @@
         // Súčet v € (položky za body sa nezapočítavajú) + odpočet skladu (len sledované produkty)
         let newItemsSubtotal = 0;
         let newItemsProfit = 0;
+        const profitUnitOf = new Map();
         const stockDelta = {};
         newItems.forEach(item => {
             if (item.payMode !== 'points') {
@@ -1432,6 +1497,7 @@
                 const pp = products.find(prod => prod.id === item.product.id);
                 const ppu = pp ? (pp.profit || (pp.price * 0.4)) : (item.product.profit || 1);
                 newItemsProfit += ppu * item.qty;
+                profitUnitOf.set(item, ppu);
             }
             const p = products.find(prod => prod.id === item.product.id);
             if (p && isStockTracked(p)) stockDelta[p.id] = (stockDelta[p.id] || 0) + item.qty;
@@ -1452,7 +1518,10 @@
         if (card && net !== 0) batch.update(db.collection('cards').doc(card.id), { points: FV.increment(net) });
 
         const now = new Date();
-        batch.set(db.collection('transactions').doc(), {
+        const txRef = db.collection('transactions').doc();
+        const sendLogId = db.collection('fund_logs').doc().id;
+        const sendSplitPct = getProfitSplitPct();
+        batch.set(txRef, {
             timestamp: now.toISOString(), timeStr: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), hour: now.getHours(), room: room.name, total: newItemsSubtotal, includeInAnalytics: true,
             cardId: card ? card.id : null, pointsEarned: pointsEarned, pointsSpent: pointsToSpend,
             items: newItems.map(i => ({ id: i.product.id, name: i.product.name, qty: i.qty, unit: i.product.unit || 'ks', price: i.product.price, payMode: i.payMode || 'eur', pointsPrice: parseFloat(i.product.pointsPrice) || 0 }))
@@ -1460,7 +1529,7 @@
 
         const newCart = room.cart.map(item => {
             if ((item.status || 'new') !== 'new') return item;
-            const upd = { ...item, status: 'sent', profitCounted: true };   // zisk sa pripíše pri odoslaní na KDS
+            const upd = { ...item, status: 'sent', profitCounted: true, txId: txRef.id, logId: sendLogId, splitPct: sendSplitPct, profitUnit: profitUnitOf.has(item) ? profitUnitOf.get(item) : 0 };   // zisk sa pripíše pri odoslaní na KDS
             if (card && item.payMode !== 'points') { upd.earnCardId = card.id; upd.earnDisc = earnDisc; }
             return upd;
         });
@@ -1477,7 +1546,7 @@
         sendBusy = false;
 
         // Zisk z odoslaných položiek hneď do kasičiek a ROI cieľov (pri platbe sa už nepripočíta druhýkrát)
-        processProfitToFundsAndGoals(newItemsProfit, `KDS (${room.name || 'účet'})`);
+        processProfitToFundsAndGoals(newItemsProfit, `KDS (${room.name || 'účet'})`, { logId: sendLogId, splitPct: sendSplitPct });
 
         if (slow) toast('Spojenie je pomalé – odoslanie sa dokončí po obnovení pripojenia (neodosielaj znova).', 'warn');
         let msg = 'Odoslané na KDS!';
@@ -1506,15 +1575,16 @@
         list.sort((a, b) => txDate(b) - txDate(a));
 
         // súhrn
+        const fullyVoided = tx => (tx.items || []).length > 0 && (tx.items || []).every(i => (i.voidedQty || 0) >= (parseFloat(i.qty) || 0));
         const sum = list.reduce((s, tx) => s + (parseFloat(tx.total) || 0), 0);
         const ptsEarned = list.reduce((s, tx) => s + (parseInt(tx.pointsEarned) || 0), 0);
         const ptsSpent = list.reduce((s, tx) => s + (parseInt(tx.pointsSpent) || 0), 0);
         const chip = (label, val, cls) => `<div class="bg-slate-950/70 border border-slate-800 rounded-xl px-4 py-2.5"><div class="text-[10px] font-semibold text-slate-500 uppercase">${label}</div><div class="text-lg font-black ${cls}">${val}</div></div>`;
         const summary = document.getElementById('hist-summary');
         if (summary) summary.innerHTML =
-            chip('Objednávky', list.length, 'text-slate-100') +
+            chip('Objednávky', list.filter(t => !fullyVoided(t)).length, 'text-slate-100') +
             chip('Obrat', sum.toFixed(2) + ' €', 'text-emerald-400') +
-            chip('Priemer', (list.length ? sum / list.length : 0).toFixed(2) + ' €', 'text-sky-400') +
+            chip('Priemer', (list.filter(t => !fullyVoided(t)).length ? sum / list.filter(t => !fullyVoided(t)).length : 0).toFixed(2) + ' €', 'text-sky-400') +
             chip('Body (získané / minuté)', `+${ptsEarned} / −${ptsSpent}`, 'text-amber-400');
 
         const note = document.getElementById('hist-note');
@@ -1528,7 +1598,7 @@
         const shown = list.slice(0, LIMIT);
         // súčty po dňoch
         const dayTotals = {};
-        list.forEach(tx => { const k = txDate(tx).toDateString(); const d = dayTotals[k] || (dayTotals[k] = { n: 0, sum: 0 }); d.n++; d.sum += parseFloat(tx.total) || 0; });
+        list.forEach(tx => { const k = txDate(tx).toDateString(); const d = dayTotals[k] || (dayTotals[k] = { n: 0, sum: 0 }); if (!fullyVoided(tx)) d.n++; d.sum += parseFloat(tx.total) || 0; });
 
         let html = '', lastDay = '';
         shown.forEach(tx => {
@@ -1540,18 +1610,31 @@
                 html += `<tr class="bg-slate-950/70"><td colspan="5" class="px-3 py-2 text-xs font-bold text-slate-300"><span class="capitalize">${esc(label)}</span><span class="float-right text-slate-400">${dayTotals[dk].n} obj. · <span class="text-emerald-400">${dayTotals[dk].sum.toFixed(2)} €</span></span></td></tr>`;
             }
             const time = d.toLocaleTimeString('sk-SK', { hour: '2-digit', minute: '2-digit' });
-            const items = (tx.items || []).map(i => `${esc(i.qty)}× ${esc(i.name)}${i.payMode === 'points' ? ' <span class="text-yellow-300">(⭐ body)</span>' : ''}`).join(', ');
+            const items = (tx.items || []).map(i => {
+                const v = Math.min(parseFloat(i.qty) || 0, i.voidedQty || 0), ok = (parseFloat(i.qty) || 0) - v;
+                const star = i.payMode === 'points' ? ' <span class="text-yellow-300">(⭐ body)</span>' : '';
+                const parts = [];
+                if (ok > 0) parts.push(`${esc(ok)}× ${esc(i.name)}${star}`);
+                if (v > 0) parts.push(`<s class="text-rose-400/80" title="Zrušené">${esc(v)}× ${esc(i.name)}</s>`);
+                return parts.join(', ');
+            }).join(', ');
+            const voidedAll = fullyVoided(tx);
+            const wasVoided = (tx.items || []).some(i => (i.voidedQty || 0) > 0);
+            const origTot = tx.originalTotal != null ? parseFloat(tx.originalTotal) : null;
+            const totalHtml = voidedAll
+                ? `<s class="text-rose-400/80">${(origTot || 0).toFixed(2)} €</s>`
+                : (wasVoided && origTot != null ? `<s class="text-rose-400/60 text-xs font-bold mr-1">${origTot.toFixed(2)} €</s>` : '') + `${(parseFloat(tx.total) || 0).toFixed(2)} €`;
             const pts = [
                 (parseInt(tx.pointsEarned) || 0) > 0 ? `<span class="text-amber-400">+${parseInt(tx.pointsEarned)} b</span>` : '',
                 (parseInt(tx.pointsSpent) || 0) > 0 ? `<span class="text-yellow-300">−${parseInt(tx.pointsSpent)} b</span>` : ''
             ].filter(Boolean).join(' ') || '<span class="text-slate-600">–</span>';
             html += `
-            <tr class="hover:bg-slate-950/40">
+            <tr class="hover:bg-slate-950/40 ${voidedAll ? 'opacity-60' : ''}">
                 <td class="p-3 text-slate-400 text-xs whitespace-nowrap">${esc(time)}</td>
                 <td class="p-3 font-bold text-slate-200">${esc(tx.room)}${tx.isQrOrder ? ' <span class="text-[10px] bg-sky-500/20 text-sky-300 px-1.5 py-0.5 rounded font-bold align-middle">QR</span>' : ''}</td>
                 <td class="p-3 text-slate-300 text-xs">${items}</td>
                 <td class="p-3 text-xs whitespace-nowrap">${pts}</td>
-                <td class="p-3 font-black text-emerald-400 text-right whitespace-nowrap">${(parseFloat(tx.total) || 0).toFixed(2)} €</td>
+                <td class="p-3 font-black ${voidedAll ? 'text-rose-400' : 'text-emerald-400'} text-right whitespace-nowrap">${totalHtml}</td>
             </tr>`;
         });
         tbody.innerHTML = html;
@@ -1746,6 +1829,7 @@
         const hourly = {}, daily = {}, prodQty = {};
         kdsTransactions.forEach(tx => {
             if (!tx.includeInAnalytics) return;
+            if ((tx.items || []).length > 0 && (tx.items || []).every(i => (i.voidedQty || 0) >= (parseFloat(i.qty) || 0))) return;   // celé stornované
             const d = txDate(tx);
             if (!inRange(d, range)) return;
             const total = parseFloat(tx.total) || 0;
@@ -1753,7 +1837,7 @@
             const h = d.getHours(); hourly[h] = (hourly[h] || 0) + total;
             const dk = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
             daily[dk] = (daily[dk] || 0) + total;
-            (tx.items || []).forEach(i => { const q = parseFloat(i.qty) || 0; itemsCount += q; prodQty[i.name] = (prodQty[i.name] || 0) + q; });
+            (tx.items || []).forEach(i => { const q = (parseFloat(i.qty) || 0) - (i.voidedQty || 0); itemsCount += q; prodQty[i.name] = (prodQty[i.name] || 0) + q; });
         });
 
         let bestHour = null;
