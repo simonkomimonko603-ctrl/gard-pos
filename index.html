@@ -272,6 +272,13 @@
                     <h3 class="text-sm font-bold text-slate-400 uppercase mb-3 flex items-center gap-2">
                         <i class="fa-solid fa-vault text-slate-500"></i> Trojkasičkový systém
                     </h3>
+                    <div class="grid grid-cols-1 sm:grid-cols-5 gap-3 mb-4 bg-slate-900/80 border border-slate-800 p-4 rounded-2xl">
+                        <select id="adjust-fund-select" class="p-3 border border-slate-700 bg-slate-950 text-slate-100 rounded-xl text-sm"><option value="investments">Investície</option><option value="stock">Sklad</option><option value="payout">Výplata</option></select>
+                        <select id="adjust-mode-select" class="p-3 border border-slate-700 bg-slate-950 text-slate-100 rounded-xl text-sm"><option value="set">Nastaviť stav na</option><option value="add">Pripísať (+)</option></select>
+                        <input type="number" step="0.01" id="adjust-amount-input" placeholder="Suma v €" class="p-3 border border-slate-700 bg-slate-950 text-slate-100 rounded-xl text-sm">
+                        <input type="text" id="adjust-note-input" placeholder="Poznámka (voliteľné)" class="p-3 border border-slate-700 bg-slate-950 text-slate-100 rounded-xl text-sm">
+                        <button onclick="adjustFund()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4 py-3 rounded-xl text-xs transition">Uložiť do kasičky</button>
+                    </div>
                     <div class="grid grid-cols-3 gap-4">
                         <div class="bg-slate-900/80 border border-slate-800 p-5 rounded-2xl shadow-xl border-l-4 border-l-emerald-500">
                             <div class="text-xs font-semibold text-slate-400 uppercase">Investície</div>
@@ -360,6 +367,7 @@
         <div class="space-y-3 mb-4">
             <input type="text" id="goal-name-input" placeholder="Názov cieľa (napr. Kávovar)" class="w-full p-3 border border-slate-700 bg-slate-950 text-slate-100 rounded-xl text-sm">
             <input type="number" id="goal-target-input" placeholder="Cieľová suma v € (napr. 1000)" class="w-full p-3 border border-slate-700 bg-slate-950 text-slate-100 rounded-xl text-sm">
+            <input type="number" id="goal-start-input" placeholder="Počiatočný stav v € (voliteľné, napr. 0)" class="w-full p-3 border border-slate-700 bg-slate-950 text-slate-100 rounded-xl text-sm">
             <input type="number" id="goal-share-input" value="100" placeholder="Percento zo zisku (%)" class="w-full p-3 border border-slate-700 bg-slate-950 text-slate-100 rounded-xl text-sm">
         </div>
         <div class="flex justify-end gap-2">
@@ -885,7 +893,7 @@
                             </div>
                             <div class="text-xs text-slate-400 mt-0.5">Podiel zo zisku: ${goal.share || 100}%</div>
                         </div>
-                        <button onclick="deleteGoal('${goal.id}')" class="text-xs text-rose-400 hover:text-rose-300 p-1"><i class="fa-solid fa-trash"></i></button>
+                        <div class="flex items-center gap-1"><button onclick="editGoalCurrent('${goal.id}')" title="Nastaviť stav" class="text-xs text-amber-400 hover:text-amber-300 p-1"><i class="fa-solid fa-pen"></i></button><button onclick="deleteGoal('${goal.id}')" class="text-xs text-rose-400 hover:text-rose-300 p-1"><i class="fa-solid fa-trash"></i></button></div>
                     </div>
 
                     <div class="flex justify-between items-end">
@@ -911,6 +919,7 @@
         document.getElementById('goal-name-input').value = '';
         document.getElementById('goal-target-input').value = '';
         document.getElementById('goal-share-input').value = '100';
+        document.getElementById('goal-start-input').value = '';
         document.getElementById('goal-modal').classList.remove('hidden');
         document.getElementById('goal-modal').classList.add('flex');
     }
@@ -933,7 +942,7 @@
         db.collection('roi_goals').add({
             name: name,
             target: target,
-            current: 0,
+            current: Math.max(0, parseFloat(document.getElementById('goal-start-input').value) || 0),
             share: share,
             createdAt: new Date().toISOString()
         });
@@ -978,6 +987,40 @@
     function updateProductProfit(productId) {
         const val = parseFloat(document.getElementById(`profit-cfg-${productId}`).value) || 0;
         db.collection('products').doc(productId).update({ profit: val });
+    }
+
+    function adjustFund() {
+        const fundKey = document.getElementById('adjust-fund-select').value;
+        const mode = document.getElementById('adjust-mode-select').value;
+        const raw = document.getElementById('adjust-amount-input').value;
+        const note = document.getElementById('adjust-note-input').value.trim();
+        const amount = parseFloat(raw);
+        if (raw === '' || isNaN(amount)) { toast('Zadajte sumu.'); return; }
+        const cur = parseFloat(fundsState[fundKey]) || 0;
+        const delta = mode === 'set' ? amount - cur : amount;
+        if (delta === 0) { toast('Žiadna zmena.'); return; }
+        db.collection('settings').doc('funds').set({ [fundKey]: firebase.firestore.FieldValue.increment(delta) }, { merge: true });
+        const fundNames = { investments: 'Investície', stock: 'Sklad', payout: 'Výplata' };
+        db.collection('fund_logs').add({
+            timestamp: new Date().toISOString(),
+            timeStr: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            type: mode === 'set' ? 'Nastavenie stavu' : 'Ručné pripísanie',
+            fund: fundNames[fundKey],
+            amount: delta,
+            note: note || (mode === 'set' ? `Počiatočný stav ${amount.toFixed(2)} €` : 'Ručné pripísanie')
+        });
+        document.getElementById('adjust-amount-input').value = '';
+        document.getElementById('adjust-note-input').value = '';
+        toast(mode === 'set' ? 'Stav kasičky nastavený.' : 'Suma pripísaná do kasičky.', 'ok');
+    }
+
+    function editGoalCurrent(id) {
+        const g = roiGoals.find(x => x.id === id); if (!g) return;
+        const v = prompt(`Aktuálny stav cieľa "${g.name}" v € (cieľ: ${parseFloat(g.target).toFixed(2)} €):`, (parseFloat(g.current) || 0).toFixed(2));
+        if (v === null) return;
+        const n = parseFloat(String(v).replace(',', '.'));
+        if (isNaN(n) || n < 0) { toast('Neplatná suma.'); return; }
+        db.collection('roi_goals').doc(id).update({ current: n });
     }
 
     function recordExpense() {
@@ -1028,9 +1071,9 @@
                 return `
                     <tr class="hover:bg-slate-950/40">
                         <td class="p-3 text-slate-400 text-xs">${log.timeStr}</td>
-                        <td class="p-3 text-rose-400 font-bold">${esc(log.type)}</td>
+                        <td class="p-3 ${parseFloat(log.amount) >= 0 ? 'text-emerald-400' : 'text-rose-400'} font-bold">${esc(log.type)}</td>
                         <td class="p-3 font-bold text-slate-200">${esc(log.fund)}</td>
-                        <td class="p-3 font-black text-rose-400">${parseFloat(log.amount).toFixed(2)} €</td>
+                        <td class="p-3 font-black ${parseFloat(log.amount) >= 0 ? 'text-emerald-400' : 'text-rose-400'}">${parseFloat(log.amount) > 0 ? '+' : ''}${parseFloat(log.amount).toFixed(2)} €</td>
                         <td class="p-3 text-slate-400 text-xs">${esc(log.note)}</td>
                     </tr>
                 `;
@@ -1381,9 +1424,15 @@
 
         // Súčet v € (položky za body sa nezapočítavajú) + odpočet skladu (len sledované produkty)
         let newItemsSubtotal = 0;
+        let newItemsProfit = 0;
         const stockDelta = {};
         newItems.forEach(item => {
-            if (item.payMode !== 'points') newItemsSubtotal += item.product.price * item.qty;
+            if (item.payMode !== 'points') {
+                newItemsSubtotal += item.product.price * item.qty;
+                const pp = products.find(prod => prod.id === item.product.id);
+                const ppu = pp ? (pp.profit || (pp.price * 0.4)) : (item.product.profit || 1);
+                newItemsProfit += ppu * item.qty;
+            }
             const p = products.find(prod => prod.id === item.product.id);
             if (p && isStockTracked(p)) stockDelta[p.id] = (stockDelta[p.id] || 0) + item.qty;
         });
@@ -1411,7 +1460,7 @@
 
         const newCart = room.cart.map(item => {
             if ((item.status || 'new') !== 'new') return item;
-            const upd = { ...item, status: 'sent' };
+            const upd = { ...item, status: 'sent', profitCounted: true };   // zisk sa pripíše pri odoslaní na KDS
             if (card && item.payMode !== 'points') { upd.earnCardId = card.id; upd.earnDisc = earnDisc; }
             return upd;
         });
@@ -1426,6 +1475,9 @@
             else { sendBusy = false; console.error(e); toast('Odoslanie zlyhalo, skús znova: ' + (e.message || e), 'err'); return false; }
         }
         sendBusy = false;
+
+        // Zisk z odoslaných položiek hneď do kasičiek a ROI cieľov (pri platbe sa už nepripočíta druhýkrát)
+        processProfitToFundsAndGoals(newItemsProfit, `KDS (${room.name || 'účet'})`);
 
         if (slow) toast('Spojenie je pomalé – odoslanie sa dokončí po obnovení pripojenia (neodosielaj znova).', 'warn');
         let msg = 'Odoslané na KDS!';
@@ -1538,9 +1590,8 @@
         const total = parseFloat(document.getElementById('total-val').innerText);
         if (partial <= 0 || partial >= total) { toast("Neplatná suma."); return; }
 
-        let estimatedProfit = partial * 0.4;
-        processProfitToFundsAndGoals(estimatedProfit, 'Čiastočná platba');
-        toast(`Čiastočná platba prijatá! Zisk (+${estimatedProfit.toFixed(2)} €) bol rozdelený do cieľov a kasičiek.`);
+        // zisk už bol pripísaný pri odoslaní na KDS, takže tu sa nepripočítava znova
+        toast('Čiastočná platba prijatá!');
         closePaymentModal();
     }
 
