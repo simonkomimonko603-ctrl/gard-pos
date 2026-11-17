@@ -756,8 +756,7 @@
             const qrSplitPct = getProfitSplitPct();
             orderItems.forEach(qrItem => {
                 const prod = products.find(p => p.id === qrItem.id) || { id: qrItem.id, name: qrItem.name, price: qrItem.price, unit: qrItem.unit || 'ks', profit: qrItem.price * 0.4 };
-                // profitCounted: zisk z QR objednávky sa pripíše hneď tu, pri platbe sa už nesmie počítať druhýkrát
-                newCart.push({ product: prod, qty: qrItem.qty, status: 'sent', profitCounted: true, txId: qrTxRef.id, logId: qrLogId, splitPct: qrSplitPct, profitUnit: (prod.profit || (prod.price * 0.4)), ...(order.cardId ? { earnCardId: order.cardId, earnDisc: 0 } : {}) });
+                newCart.push({ product: prod, qty: qrItem.qty, status: 'sent', txId: qrTxRef.id, profitUnit: (prod.profit || (prod.price * 0.4)), ...(order.cardId ? { earnCardId: order.cardId, earnDisc: 0 } : {}) });
             });
             if (isNewRoom) batch.set(roomRef, { name: roomName, cart: newCart, selectedCardId: order.cardId || null });
             else batch.update(roomRef, { cart: newCart, selectedCardId: order.cardId || room.selectedCardId || null });
@@ -792,8 +791,6 @@
                 if (e.message !== 'timeout') throw e;
                 toast('Spojenie je pomalé – objednávka sa dokončí po obnovení pripojenia (neprijímaj ju znova).', 'warn');
             }
-
-            processProfitToFundsAndGoals(totalProfit, `QR (${roomName})`, { logId: qrLogId, splitPct: qrSplitPct });
 
             currentAlertOrder = null;
             document.getElementById('qr-incoming-modal').classList.add('hidden');
@@ -864,15 +861,106 @@
         });
     }
 
+    // Zisk celého účtu (bez položiek za body a bez starých položiek, ktorých zisk už bol pripísaný pri odoslaní)
+    function roomTotalProfit(room) {
+        let t = 0;
+        (room.cart || []).forEach(item => {
+            if (item.payMode === 'points' || item.profitCounted) return;
+            t += itemProfitUnit(item) * (parseFloat(item.qty) || 0);
+        });
+        return t;
+    }
+    function itemProfitUnit(item) {
+        if (item.profitUnit != null) return parseFloat(item.profitUnit) || 0;
+        const p = products.find(x => x.id === item.product.id);
+        return p ? (p.profit || (p.price * 0.4)) : (item.product.profit || ((parseFloat(item.product.price) || 0) * 0.4));
+    }
+    const round2 = n => Math.round((parseFloat(n) || 0) * 100) / 100;
+
+    // Pripíše časť zisku účtu do kasičiek/ROI cieľov a zapamätá si, koľko už bolo pripísané (aby sa to dalo vrátiť pri storne)
+    function bookRoomProfit(room, amount, sourceName) {
+        amount = round2(amount);
+        if (!(amount > 0)) return 0;
+        const FV = firebase.firestore.FieldValue;
+        const pct = getProfitSplitPct();   // pri fonde "sklad" >= 100 € ide zisk 50 % investície / 50 % výplata
+        const split = { investments: amount * pct.investments, stock: amount * pct.stock, payout: amount * pct.payout };
+        processProfitToFundsAndGoals(amount, sourceName, { splitPct: pct });
+        db.collection('rooms').doc(room.id).update({
+            profitBooked: FV.increment(amount),
+            'profitBookedSplit.investments': FV.increment(split.investments),
+            'profitBookedSplit.stock': FV.increment(split.stock),
+            'profitBookedSplit.payout': FV.increment(split.payout)
+        });
+        const bs = room.profitBookedSplit || (room.profitBookedSplit = { investments: 0, stock: 0, payout: 0 });
+        room.profitBooked = (parseFloat(room.profitBooked) || 0) + amount;
+        bs.investments = (bs.investments || 0) + split.investments; bs.stock = (bs.stock || 0) + split.stock; bs.payout = (bs.payout || 0) + split.payout;
+        return amount;
+    }
+
+    // Vráti už pripísaný zisk z kasičiek a cieľov (storno položky / vynulovanie účtu po čiastočnej platbe)
+    function reverseBookedProfit(room, amount) {
+        const booked = parseFloat(room.profitBooked) || 0;
+        const amt = Math.min(round2(amount), booked);
+        if (!(amt > 0)) return;
+        const FV = firebase.firestore.FieldValue;
+        const ratio = amt / booked;
+        const bs = room.profitBookedSplit || {};
+        const rev = { investments: (bs.investments || 0) * ratio, stock: (bs.stock || 0) * ratio, payout: (bs.payout || 0) * ratio };
+
+        db.collection('settings').doc('funds').set({
+            investments: FV.increment(-rev.investments),
+            stock: FV.increment(-rev.stock),
+            payout: FV.increment(-rev.payout)
+        }, { merge: true });
+
+        roiGoals.forEach(goal => {
+            const cur = parseFloat(goal.current) || 0;
+            const take = Math.min(cur, amt * ((goal.share || 100) / 100));
+            if (take > 0) {
+                db.collection('roi_goals').doc(goal.id).update({ current: FV.increment(-take) });
+                goal.current = cur - take;
+            }
+        });
+
+        db.collection('fund_logs').add({
+            timestamp: new Date().toISOString(),
+            timeStr: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            type: 'Storno',
+            fund: 'Kasičky & ciele',
+            amount: -amt,
+            split: { investments: -rev.investments, stock: -rev.stock, payout: -rev.payout },
+            note: `Vrátený zisk z účtu "${room.name || ''}"`
+        });
+
+        db.collection('rooms').doc(room.id).update({
+            profitBooked: FV.increment(-amt),
+            'profitBookedSplit.investments': FV.increment(-rev.investments),
+            'profitBookedSplit.stock': FV.increment(-rev.stock),
+            'profitBookedSplit.payout': FV.increment(-rev.payout)
+        });
+        room.profitBooked = booked - amt;
+        bs.investments = (bs.investments || 0) - rev.investments; bs.stock = (bs.stock || 0) - rev.stock; bs.payout = (bs.payout || 0) - rev.payout;
+    }
+
     // --- STORNO ODOSLANEJ POLOŽKY: vráti zisk z kasičiek aj cieľov, sklad a označí transakciu ako prečiarknutú ---
-    function voidSentItem(item, qty) {
+    function voidSentItem(item, qty, opts = {}) {
         if (!item || !(qty > 0) || item.payMode === 'points') return;
         const FV = firebase.firestore.FieldValue;
         const prod = products.find(x => x.id === item.product.id);
 
         if (prod && isStockTracked(prod)) db.collection('products').doc(prod.id).update({ stock: FV.increment(qty) });
 
-        if (item.profitCounted) {
+        // Nový model: zisk je v kasičkách len za už zaplatenú časť účtu. Ak po storne klesne zisk účtu pod pripísanú sumu, rozdiel sa vráti.
+        if (!item.profitCounted && !opts.skipProfit) {
+            const room = getCurrentRoom();
+            if ((parseFloat(room.profitBooked) || 0) > 0) {
+                const newTotal = Math.max(0, roomTotalProfit(room) - itemProfitUnit(item) * qty);
+                const excess = (parseFloat(room.profitBooked) || 0) - newTotal;
+                if (excess > 0.004) reverseBookedProfit(room, excess);
+            }
+        }
+
+        if (item.profitCounted) {   // staré položky (odoslané pred zmenou): zisk bol pripísaný pri odoslaní
             const unit = item.profitUnit != null ? (parseFloat(item.profitUnit) || 0)
                 : (prod ? (prod.profit || (prod.price * 0.4)) : ((parseFloat(item.product.price) || 0) * 0.4));
             const profit = unit * qty;
@@ -1404,7 +1492,7 @@
         if (!confirm(`Vynulovať celý účet "${room.name}"?\nOdoslané položky sa zmažú a body za ne sa odpočítajú späť.`)) return;
         const back = {};
         (room.cart || []).forEach(item => {
-            if ((item.status || 'new') === 'sent') voidSentItem(item, item.qty);
+            if ((item.status || 'new') === 'sent') voidSentItem(item, item.qty, { skipProfit: true });
             if ((item.status || 'new') === 'sent' && item.earnCardId && item.payMode !== 'points') {
                 back[item.earnCardId] = (back[item.earnCardId] || 0) + Math.round(item.product.price * (1 - (item.earnDisc || 0) / 100) * item.qty);
             }
@@ -1412,7 +1500,8 @@
         Object.keys(back).forEach(cid => {
             if (back[cid] > 0) db.collection('cards').doc(cid).update({ points: firebase.firestore.FieldValue.increment(-back[cid]) });
         });
-        db.collection('rooms').doc(room.id).update({ cart: [], selectedCardId: null, paidPartial: 0 });
+        if ((parseFloat(room.profitBooked) || 0) > 0) reverseBookedProfit(room, room.profitBooked);   // vráť zisk z čiastočných platieb
+        db.collection('rooms').doc(room.id).update({ cart: [], selectedCardId: null, paidPartial: 0, profitBooked: 0, profitBookedSplit: null });
     }
 
     function renderCart() {
@@ -1538,7 +1627,7 @@
 
         const newCart = room.cart.map(item => {
             if ((item.status || 'new') !== 'new') return item;
-            const upd = { ...item, status: 'sent', profitCounted: true, txId: txRef.id, logId: sendLogId, splitPct: sendSplitPct, profitUnit: profitUnitOf.has(item) ? profitUnitOf.get(item) : 0 };   // zisk sa pripíše pri odoslaní na KDS
+            const upd = { ...item, status: 'sent', txId: txRef.id, profitUnit: profitUnitOf.has(item) ? profitUnitOf.get(item) : 0 };   // zisk sa pripíše do kasičiek až pri (čiastočnej) platbe
             if (card && item.payMode !== 'points') { upd.earnCardId = card.id; upd.earnDisc = earnDisc; }
             return upd;
         });
@@ -1555,7 +1644,6 @@
         sendBusy = false;
 
         // Zisk z odoslaných položiek hneď do kasičiek a ROI cieľov (pri platbe sa už nepripočíta druhýkrát)
-        processProfitToFundsAndGoals(newItemsProfit, `KDS (${room.name || 'účet'})`, { logId: sendLogId, splitPct: sendSplitPct });
 
         if (slow) toast('Spojenie je pomalé – odoslanie sa dokončí po obnovení pripojenia (neodosielaj znova).', 'warn');
         let msg = 'Odoslané na KDS!';
@@ -1677,16 +1765,19 @@
         document.getElementById('cash-change-val').innerText = `${Math.max(0, given - total).toFixed(2)} €`;
     }
 
-    // Čiastočná platba: nič sa nezapisuje do histórie ani ziskov, iba sa zníži suma na účte
+    // Čiastočná platba: zníži sumu na účte a pripíše pomernú časť zisku do kasičiek / ROI cieľov
     function submitPartialPayment(method) {
         const room = getCurrentRoom();
-        const partial = Math.round((parseFloat(document.getElementById('partial-amount-input').value) || 0) * 100) / 100;
+        const partial = round2(document.getElementById('partial-amount-input').value);
         const due = parseFloat(document.getElementById('total-val').innerText) || 0;   // aktuálne zostáva doplatiť
         if (partial <= 0 || partial >= due) { toast("Neplatná suma."); return; }
 
+        const remainingProfit = Math.max(0, roomTotalProfit(room) - (parseFloat(room.profitBooked) || 0));
+        const profitPart = bookRoomProfit(room, remainingProfit * (partial / due), `Čiastočná platba ${method} (${room.name || 'účet'})`);
+
         db.collection('rooms').doc(room.id).update({ paidPartial: firebase.firestore.FieldValue.increment(partial) });
         document.getElementById('partial-amount-input').value = '';
-        toast(`Zaplatené ${partial.toFixed(2)} € (${method}). Zostáva ${(due - partial).toFixed(2)} €.`, 'ok');
+        toast(`Zaplatené ${partial.toFixed(2)} € (${method}). Zostáva ${(due - partial).toFixed(2)} €. Do kasičiek: ${profitPart.toFixed(2)} €.`, 'ok');
         closePaymentModal();
     }
 
@@ -1696,21 +1787,15 @@
         payBusy = true; setTimeout(() => { payBusy = false; }, 1500);   // ochrana pred dvojitým kliknutím
 
         const room = getCurrentRoom();
-        let totalProfit = 0;
-
-        room.cart.forEach(item => {
-            if (item.payMode === 'points' || item.profitCounted) return;   // QR položky už majú zisk pripísaný
-            const p = products.find(prod => prod.id === item.product.id);
-            const profitPerUnit = p ? (p.profit || (p.price * 0.4)) : (item.product.profit || 1);
-            totalProfit += profitPerUnit * item.qty;
-        });
+        // zisk, ktorý sa ešte nepripísal (časť sa mohla pripísať pri čiastočných platbách)
+        const totalProfit = round2(Math.max(0, roomTotalProfit(room) - (parseFloat(room.profitBooked) || 0)));
 
         const paidTotal = parseFloat(document.getElementById('total-val').innerText) || 0;
-        processProfitToFundsAndGoals(totalProfit, method);
+        processProfitToFundsAndGoals(totalProfit, `Platba ${method} (${room.name || 'účet'})`);
         db.collection('payments').add({ timestamp: new Date().toISOString(), room: room.name || '', method: String(method), total: paidTotal, cardId: room.selectedCardId || null }).catch(() => {});
-        toast(`Platba úspešná! Zisk z objednávky (${totalProfit.toFixed(2)} €) započítaný do ROI cieľov a kasičiek.`, 'ok');
+        toast(`Platba úspešná! Do kasičiek a ROI cieľov pripísaných ${totalProfit.toFixed(2)} €.`, 'ok');
 
-        db.collection('rooms').doc(room.id).update({ cart: [], selectedCardId: null, paidPartial: 0 });
+        db.collection('rooms').doc(room.id).update({ cart: [], selectedCardId: null, paidPartial: 0, profitBooked: 0, profitBookedSplit: null });
         closePaymentModal();
     }
 
