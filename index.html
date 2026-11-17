@@ -169,7 +169,8 @@
                     <div class="border-t border-slate-800 pt-3 space-y-1.5 mb-4">
                         <div class="flex justify-between text-sm text-slate-400"><span>Medzisúčet:</span><span id="subtotal-val" class="text-slate-200">0.00 €</span></div>
                         <div class="flex justify-between text-sm text-slate-400"><span>Zľava:</span><span id="discount-val" class="text-emerald-400 font-bold">0.00 €</span></div>
-                        <div class="flex justify-between text-xl font-black text-slate-100 border-t border-slate-800 pt-2"><span>Spolu:</span><span id="total-val" class="text-emerald-400">0.00 €</span></div>
+                        <div id="paid-row" class="hidden justify-between text-sm text-slate-400"><span>Už zaplatené:</span><span id="paid-val" class="text-amber-400 font-bold">0.00 €</span></div>
+                        <div class="flex justify-between text-xl font-black text-slate-100 border-t border-slate-800 pt-2"><span>Zostáva:</span><span id="total-val" class="text-emerald-400">0.00 €</span></div>
                     </div>
 
                     <div class="space-y-2">
@@ -1411,7 +1412,7 @@
         Object.keys(back).forEach(cid => {
             if (back[cid] > 0) db.collection('cards').doc(cid).update({ points: firebase.firestore.FieldValue.increment(-back[cid]) });
         });
-        db.collection('rooms').doc(room.id).update({ cart: [], selectedCardId: null });
+        db.collection('rooms').doc(room.id).update({ cart: [], selectedCardId: null, paidPartial: 0 });
     }
 
     function renderCart() {
@@ -1421,6 +1422,7 @@
         if (!room.cart || room.cart.length === 0) {
             container.innerHTML = `<div class="text-center text-slate-500 mt-10">Účet je zatiaľ prázdny</div>`;
             document.getElementById('subtotal-val').innerText = '0.00 €'; document.getElementById('discount-val').innerText = '0.00 €'; document.getElementById('total-val').innerText = '0.00 €';
+            const pr0 = document.getElementById('paid-row'); if (pr0) { pr0.classList.add('hidden'); pr0.classList.remove('flex'); }
             return;
         }
 
@@ -1454,10 +1456,17 @@
         let discountPct = activeCustomerLoyalty ? activeCustomerLoyalty.discount : 0;
         let discountAmount = (subtotal * discountPct) / 100;
         let total = subtotal - discountAmount;
+        const paidPartial = Math.min(parseFloat(room.paidPartial) || 0, total);   // čiastočne už zaplatené
+        const due = Math.max(0, total - paidPartial);
 
         document.getElementById('subtotal-val').innerText = `${subtotal.toFixed(2)} €`;
         document.getElementById('discount-val').innerText = `-${discountAmount.toFixed(2)} € (${discountPct}%)`;
-        document.getElementById('total-val').innerText = `${total.toFixed(2)} €`;
+        const paidRow = document.getElementById('paid-row');
+        if (paidRow) {
+            paidRow.classList.toggle('hidden', !(paidPartial > 0)); paidRow.classList.toggle('flex', paidPartial > 0);
+            document.getElementById('paid-val').innerText = `-${paidPartial.toFixed(2)} €`;
+        }
+        document.getElementById('total-val').innerText = `${due.toFixed(2)} €`;
     }
 
     function applyCustomerLoyalty() {
@@ -1668,13 +1677,16 @@
         document.getElementById('cash-change-val').innerText = `${Math.max(0, given - total).toFixed(2)} €`;
     }
 
+    // Čiastočná platba: nič sa nezapisuje do histórie ani ziskov, iba sa zníži suma na účte
     function submitPartialPayment(method) {
-        const partial = parseFloat(document.getElementById('partial-amount-input').value) || 0;
-        const total = parseFloat(document.getElementById('total-val').innerText);
-        if (partial <= 0 || partial >= total) { toast("Neplatná suma."); return; }
+        const room = getCurrentRoom();
+        const partial = Math.round((parseFloat(document.getElementById('partial-amount-input').value) || 0) * 100) / 100;
+        const due = parseFloat(document.getElementById('total-val').innerText) || 0;   // aktuálne zostáva doplatiť
+        if (partial <= 0 || partial >= due) { toast("Neplatná suma."); return; }
 
-        // zisk už bol pripísaný pri odoslaní na KDS, takže tu sa nepripočítava znova
-        toast('Čiastočná platba prijatá!');
+        db.collection('rooms').doc(room.id).update({ paidPartial: firebase.firestore.FieldValue.increment(partial) });
+        document.getElementById('partial-amount-input').value = '';
+        toast(`Zaplatené ${partial.toFixed(2)} € (${method}). Zostáva ${(due - partial).toFixed(2)} €.`, 'ok');
         closePaymentModal();
     }
 
@@ -1698,7 +1710,7 @@
         db.collection('payments').add({ timestamp: new Date().toISOString(), room: room.name || '', method: String(method), total: paidTotal, cardId: room.selectedCardId || null }).catch(() => {});
         toast(`Platba úspešná! Zisk z objednávky (${totalProfit.toFixed(2)} €) započítaný do ROI cieľov a kasičiek.`, 'ok');
 
-        db.collection('rooms').doc(room.id).update({ cart: [], selectedCardId: null });
+        db.collection('rooms').doc(room.id).update({ cart: [], selectedCardId: null, paidPartial: 0 });
         closePaymentModal();
     }
 
