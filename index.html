@@ -2,7 +2,7 @@
 <html lang="sk">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="theme-color" content="#0b0f19">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -25,6 +25,9 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 
     <style>
+        /* iPad: žiadne približovanie dvojitým ťuknutím (napr. pri PIN 1111) ani štípaním */
+        html, body, * { touch-action: manipulation; }
+        body { -webkit-touch-callout: none; -webkit-text-size-adjust: 100%; }
         .modal { transition: opacity 0.25s ease; }
         body { background-color: #0b0f19; color: #f1f5f9; }
         ::-webkit-scrollbar { width: 6px; }
@@ -56,8 +59,138 @@
 
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
+
+    // ================= TESTOVACÍ REŽIM =================
+    // Po zapnutí sa všetko ukladá do kópií kolekcií "beta_*". Skutočné dáta sa nedotknú.
+    // O polnoci sa testovacie dáta zmažú a aplikácia sa vráti k skutočným dátam.
+    const REAL_COL = db.collection.bind(db);
+    const BETA_COLS = ['cards', 'fund_logs', 'payments', 'products', 'qr_orders', 'roi_goals', 'rooms', 'settings', 'transactions'];
+    const BETA_SEED = ['settings', 'products', 'rooms', 'cards', 'roi_goals'];   // čo sa skopíruje do testu (história a QR objednávky začínajú prázdne)
+    let BETA = false, betaUntil = 0, betaEnding = false;
+    try {
+        const st = JSON.parse(localStorage.getItem('gardBeta') || 'null');
+        if (st && st.until > Date.now()) { BETA = true; betaUntil = st.until; }
+        else if (st) localStorage.removeItem('gardBeta');
+    } catch (e) {}
+    db.collection = name => REAL_COL(BETA && BETA_COLS.includes(name) ? 'beta_' + name : name);
+    const betaFlagRef = () => REAL_COL('settings').doc('beta');   // príznak je vždy v skutočných dátach, aby ho videli všetky zariadenia
+
+    function betaBusy(text) {
+        let el = document.getElementById('beta-busy');
+        if (!text) { if (el) el.remove(); return; }
+        if (!el) {
+            el = document.createElement('div');
+            el.id = 'beta-busy';
+            el.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(2,6,23,.92);color:#fbbf24;display:flex;align-items:center;justify-content:center;font:700 18px sans-serif;text-align:center;padding:24px';
+            document.body.appendChild(el);
+        }
+        el.textContent = text;
+    }
+
+    async function wipeBetaData() {
+        for (const col of BETA_COLS) {
+            const ref = REAL_COL('beta_' + col);
+            while (true) {
+                const snap = await ref.limit(400).get();
+                if (snap.empty) break;
+                const batch = db.batch();
+                snap.docs.forEach(d => batch.delete(d.ref));
+                await batch.commit();
+            }
+        }
+    }
+
+    async function seedBetaData() {
+        for (const col of BETA_SEED) {
+            const snap = await REAL_COL(col).get();
+            let batch = db.batch(), pending = 0;
+            for (const d of snap.docs) {
+                if (col === 'settings' && d.id === 'beta') continue;
+                batch.set(REAL_COL('beta_' + col).doc(d.id), d.data());
+                if (++pending >= 400) { await batch.commit(); batch = db.batch(); pending = 0; }
+            }
+            if (pending > 0) await batch.commit();
+        }
+    }
+
+    async function startBetaMode() {
+        if (BETA) return;
+        const end = new Date(); end.setHours(24, 0, 0, 0);
+        const left = Math.max(1, Math.round((end - Date.now()) / 60000));
+        if (!confirm(`Zapnúť TESTOVACÍ REŽIM?\n\nVšetko funguje normálne (účty, platby, sklad, body, kasičky), ale o polnoci sa všetko z testu zmaže a aplikácia sa vráti k skutočným dátam. Do polnoci zostáva ${Math.floor(left / 60)} h ${left % 60} min.\n\nSkutočné dáta sa nezmenia. Prepne sa to na všetkých zariadeniach.`)) return;
+        betaBusy('Pripravujem testovacie dáta…');
+        try {
+            await wipeBetaData();
+            await seedBetaData();
+            localStorage.setItem('gardBeta', JSON.stringify({ until: end.getTime() }));
+            await betaFlagRef().set({ on: true, until: end.getTime(), started: new Date().toISOString() });
+            location.reload();
+        } catch (e) {
+            console.error(e);
+            betaBusy(null);
+            toast('Zapnutie testovacieho režimu zlyhalo: ' + (e.message || e), 'err');
+        }
+    }
+
+    async function endBetaMode(reload = true) {
+        if (betaEnding) return;
+        betaEnding = true;
+        if (reload) betaBusy('Mažem testovacie dáta…');
+        try {
+            await wipeBetaData();
+            await betaFlagRef().set({ on: false, ended: new Date().toISOString() });
+        } catch (e) { console.error(e); }
+        try { localStorage.removeItem('gardBeta'); } catch (e) {}
+        betaEnding = false;
+        if (reload) location.reload();
+    }
+
+    function toggleBetaMode() {
+        if (BETA) { if (confirm('Ukončiť testovací režim TERAZ?\nVšetky testovacie dáta sa zmažú.')) endBetaMode(true); }
+        else startBetaMode();
+    }
+
+    function checkBetaExpiry() { if (BETA && Date.now() >= betaUntil) endBetaMode(true); }
+
+    function renderBetaUi() {
+        const btn = document.getElementById('beta-btn');
+        if (btn) {
+            btn.className = (BETA ? 'bg-amber-500/20 text-amber-300 border-amber-500/50' : 'bg-slate-800/60 text-slate-400 border-slate-700') + ' border px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2';
+            btn.innerHTML = BETA ? '<i class="fa-solid fa-flask"></i> Test: ZAP' : '<i class="fa-solid fa-flask"></i> Test';
+        }
+        const badge = document.getElementById('beta-badge');
+        if (badge) badge.classList.toggle('hidden', !BETA);
+        const header = document.querySelector('#main-interface header');
+        if (header) header.style.borderBottom = BETA ? '4px solid #f59e0b' : '';
+        if (BETA && !document.title.startsWith('[TEST]')) document.title = '[TEST] ' + document.title;
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+        renderBetaUi();
+        // príznak zdieľaný medzi zariadeniami: keď sa niekde zapne/vypne test, prepne sa aj tu
+        betaFlagRef().onSnapshot(doc => {
+            const d = doc.exists ? doc.data() : {};
+            const active = !!d.on && d.until > Date.now();
+            if (d.on && !active) { endBetaMode(BETA); return; }   // vypršalo (polnoc prešla)
+            if (active !== BETA) {
+                try {
+                    const last = parseInt(sessionStorage.getItem('gardBetaReload')) || 0;
+                    if (Date.now() - last < 10000) return;   // ochrana pred cyklickým reloadom
+                    sessionStorage.setItem('gardBetaReload', String(Date.now()));
+                    if (active) localStorage.setItem('gardBeta', JSON.stringify({ until: d.until })); else localStorage.removeItem('gardBeta');
+                } catch (e) { return; }
+                location.reload();
+            }
+        });
+        setInterval(checkBetaExpiry, 15000);
+        document.addEventListener('visibilitychange', () => { if (!document.hidden) checkBetaExpiry(); });
+        window.addEventListener('focus', checkBetaExpiry);
+    });
+    // iPad: zablokuj približovanie gestami
+    ['gesturestart', 'gesturechange', 'gestureend'].forEach(ev => document.addEventListener(ev, e => e.preventDefault(), { passive: false }));
 </script>
 
+<div id="beta-badge" class="hidden fixed bottom-2 left-2 z-[150] pointer-events-none bg-amber-500 text-slate-950 text-[11px] font-black px-3 py-1 rounded-full shadow-lg">🧪 TESTOVACÍ REŽIM · všetko sa zmaže o polnoci</div>
 <div id="net-banner" class="hidden fixed top-0 inset-x-0 z-[190] bg-rose-600 text-white text-center text-xs font-bold py-1.5">⚠ Bez pripojenia na internet – zmeny sa neuložia, kým sa spojenie neobnoví</div>
 <div id="toast-container" class="fixed top-4 left-1/2 -translate-x-1/2 z-[200] flex flex-col gap-2 items-center pointer-events-none w-full px-4"></div>
 
@@ -122,9 +255,12 @@
                 <button onclick="switchTab('stock')" id="tab-stock" class="px-4 py-2 rounded-xl font-semibold hover:bg-slate-800 text-slate-300 transition text-sm flex items-center gap-2"><i class="fa-solid fa-boxes-stacked"></i>Sklad</button>
                 <button onclick="switchTab('funds')" id="tab-funds" class="px-4 py-2 rounded-xl font-semibold hover:bg-slate-800 text-slate-300 transition text-sm flex items-center gap-2"><i class="fa-solid fa-piggy-bank"></i>Kasičky & ROI Ciele</button>
             </nav>
-            <button onclick="logout()" class="bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2">
+            <div class="flex items-center gap-2">
+                <button id="beta-btn" onclick="toggleBetaMode()" class="bg-slate-800/60 text-slate-400 border border-slate-700 px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2"><i class="fa-solid fa-flask"></i> Test</button>
+                <button onclick="logout()" class="bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2">
                 <i class="fa-solid fa-right-from-bracket"></i> Odhlásiť
             </button>
+            </div>
         </header>
 
         <main class="flex-1 overflow-hidden p-4">
