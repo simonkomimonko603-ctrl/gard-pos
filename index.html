@@ -88,7 +88,7 @@
     }
 
     async function wipeBetaData() {
-        for (const col of BETA_COLS) {
+        await Promise.all(BETA_COLS.map(async col => {
             const ref = REAL_COL('beta_' + col);
             while (true) {
                 const snap = await ref.limit(400).get();
@@ -97,11 +97,11 @@
                 snap.docs.forEach(d => batch.delete(d.ref));
                 await batch.commit();
             }
-        }
+        }));
     }
 
     async function seedBetaData() {
-        for (const col of BETA_SEED) {
+        await Promise.all(BETA_SEED.map(async col => {
             const snap = await REAL_COL(col).get();
             let batch = db.batch(), pending = 0;
             for (const d of snap.docs) {
@@ -110,7 +110,7 @@
                 if (++pending >= 400) { await batch.commit(); batch = db.batch(); pending = 0; }
             }
             if (pending > 0) await batch.commit();
-        }
+        }));
     }
 
     async function startBetaMode() {
@@ -132,17 +132,20 @@
         }
     }
 
+    // Ukončenie je okamžité: prepne sa naspäť na skutočné dáta a testovacie dáta sa zmažú na pozadí (po načítaní)
     async function endBetaMode(reload = true) {
         if (betaEnding) return;
         betaEnding = true;
-        if (reload) betaBusy('Mažem testovacie dáta…');
-        try {
-            await wipeBetaData();
-            await betaFlagRef().set({ on: false, ended: new Date().toISOString() });
-        } catch (e) { console.error(e); }
-        try { localStorage.removeItem('gardBeta'); } catch (e) {}
+        try { localStorage.removeItem('gardBeta'); localStorage.setItem('gardBetaCleanup', '1'); } catch (e) {}
+        const flagWrite = betaFlagRef().set({ on: false, ended: new Date().toISOString() });
+        if (reload) {
+            betaBusy('Ukončujem testovací režim…');
+            try { await Promise.race([flagWrite, new Promise(r => setTimeout(r, 3000))]); } catch (e) { console.error(e); }
+            location.reload();
+            return;
+        }
+        try { await flagWrite; await wipeBetaData(); localStorage.removeItem('gardBetaCleanup'); } catch (e) { console.error(e); }
         betaEnding = false;
-        if (reload) location.reload();
     }
 
     function toggleBetaMode() {
@@ -167,6 +170,7 @@
 
     window.addEventListener('DOMContentLoaded', () => {
         renderBetaUi();
+        try { if (!BETA && localStorage.getItem('gardBetaCleanup')) wipeBetaData().then(() => localStorage.removeItem('gardBetaCleanup')).catch(e => console.error(e)); } catch (e) {}
         // príznak zdieľaný medzi zariadeniami: keď sa niekde zapne/vypne test, prepne sa aj tu
         betaFlagRef().onSnapshot(doc => {
             const d = doc.exists ? doc.data() : {};
