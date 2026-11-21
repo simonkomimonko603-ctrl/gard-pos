@@ -411,16 +411,16 @@
 
                 <div>
                     <h3 class="text-sm font-bold text-slate-400 uppercase mb-3 flex items-center gap-2">
-                        <i class="fa-solid fa-vault text-slate-500"></i> Trojkasičkový systém
+                        <i class="fa-solid fa-vault text-slate-500"></i> Kasičky: Investície · Sklad · Výplata · Záloha
                     </h3>
                     <div class="grid grid-cols-1 sm:grid-cols-5 gap-3 mb-4 bg-slate-900/80 border border-slate-800 p-4 rounded-2xl">
-                        <select id="adjust-fund-select" class="p-3 border border-slate-700 bg-slate-950 text-slate-100 rounded-xl text-sm"><option value="investments">Investície</option><option value="stock">Sklad</option><option value="payout">Výplata</option></select>
+                        <select id="adjust-fund-select" class="p-3 border border-slate-700 bg-slate-950 text-slate-100 rounded-xl text-sm"><option value="investments">Investície</option><option value="stock">Sklad</option><option value="payout">Výplata</option><option value="reserve">Záloha</option></select>
                         <select id="adjust-mode-select" class="p-3 border border-slate-700 bg-slate-950 text-slate-100 rounded-xl text-sm"><option value="set">Nastaviť stav na</option><option value="add">Pripísať (+)</option></select>
                         <input type="number" step="0.01" id="adjust-amount-input" placeholder="Suma v €" class="p-3 border border-slate-700 bg-slate-950 text-slate-100 rounded-xl text-sm">
                         <input type="text" id="adjust-note-input" placeholder="Poznámka (voliteľné)" class="p-3 border border-slate-700 bg-slate-950 text-slate-100 rounded-xl text-sm">
                         <button onclick="adjustFund()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4 py-3 rounded-xl text-xs transition">Uložiť do kasičky</button>
                     </div>
-                    <div class="grid grid-cols-3 gap-4">
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
                         <div class="bg-slate-900/80 border border-slate-800 p-5 rounded-2xl shadow-xl border-l-4 border-l-emerald-500">
                             <div class="text-xs font-semibold text-slate-400 uppercase">Investície</div>
                             <div id="fund-investments" class="text-3xl font-black text-emerald-400 mt-1">15.00 €</div>
@@ -433,6 +433,10 @@
                             <div class="text-xs font-semibold text-slate-400 uppercase">Výplata</div>
                             <div id="fund-payout" class="text-3xl font-black text-blue-400 mt-1">0.00 €</div>
                         </div>
+                        <div class="bg-slate-900/80 border border-slate-800 p-5 rounded-2xl shadow-xl border-l-4 border-l-purple-500">
+                            <div class="text-xs font-semibold text-slate-400 uppercase">Záloha <span class="normal-case text-slate-500">(keby niečo)</span></div>
+                            <div id="fund-reserve" class="text-3xl font-black text-purple-400 mt-1">0.00 €</div>
+                        </div>
                     </div>
                 </div>
 
@@ -444,7 +448,7 @@
                 <div class="bg-slate-900/80 border border-slate-800 p-6 rounded-2xl shadow-xl">
                     <h3 class="text-lg font-bold text-slate-100 mb-4 flex items-center gap-2"><i class="fa-solid fa-minus-circle text-rose-400"></i> Zaznamenať Výdavok</h3>
                     <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
-                        <select id="expense-fund-select" class="p-3 border border-slate-700 bg-slate-950 text-slate-100 rounded-xl text-sm"><option value="investments">Investície</option><option value="stock">Sklad</option><option value="payout">Výplata</option></select>
+                        <select id="expense-fund-select" class="p-3 border border-slate-700 bg-slate-950 text-slate-100 rounded-xl text-sm"><option value="investments">Investície</option><option value="stock">Sklad</option><option value="payout">Výplata</option><option value="reserve">Záloha</option></select>
                         <input type="number" step="0.01" id="expense-amount-input" placeholder="Suma v €" class="p-3 border border-slate-700 bg-slate-950 text-slate-100 rounded-xl text-sm">
                         <input type="text" id="expense-note-input" placeholder="Poznámka / Dôvod" class="p-3 border border-slate-700 bg-slate-950 text-slate-100 rounded-xl text-sm">
                         <button onclick="recordExpense()" class="bg-rose-600 hover:bg-rose-500 text-white font-bold px-4 py-3 rounded-xl text-xs transition">Zaznamenať Výdavok</button>
@@ -663,7 +667,7 @@
     let kdsTransactions = [];
     let payments = [];
 
-    let fundsState = { investments: 15, stock: 20, payout: 0 };
+    let fundsState = { investments: 15, stock: 20, payout: 0, reserve: 0 };
     let fundLogs = [];
     let roiGoals = [];
 
@@ -949,15 +953,23 @@
     }
 
     // --- SPRACOVANIE ZISKU A PRIPÍSANIE DO ROI CIEĽOV AJ KASIČIEK ---
+    // Rozdelenie OBRATU (zaplatenej sumy) do kasičiek.
+    // Sklad pod 100 €:  Sklad 50 % | Investície 15 % | Výplata 25 % | Záloha 10 %
+    // Sklad od 100 €:   Sklad 0 %  | Investície 45 % | Výplata 45 % | Záloha 10 %
+    function getFundSplitPct() {
+        if ((parseFloat(fundsState.stock) || 0) >= 100) return { investments: 0.45, stock: 0, payout: 0.45, reserve: 0.10 };
+        return { investments: 0.15, stock: 0.50, payout: 0.25, reserve: 0.10 };
+    }
+    // staré rozdelenie ZISKU (iba na vrátenie starých položiek odoslaných pred touto zmenou)
     function getProfitSplitPct() {
-        if ((parseFloat(fundsState.stock) || 0) >= 100) return { investments: 0.5, stock: 0, payout: 0.5 };
-        return { investments: 0.3, stock: 0.4, payout: 0.3 };
+        if ((parseFloat(fundsState.stock) || 0) >= 100) return { investments: 0.5, stock: 0, payout: 0.5, reserve: 0 };
+        return { investments: 0.3, stock: 0.4, payout: 0.3, reserve: 0 };
     }
 
-    function processProfitToFundsAndGoals(profitAmount, sourceName, opts = {}) {
+    // ROI ciele sa plnia zo ZISKU
+    function creditRoiGoals(profitAmount) {
         if (!(profitAmount > 0)) return;
         const FV = firebase.firestore.FieldValue;
-
         roiGoals.forEach(goal => {
             const cur = parseFloat(goal.current) || 0;
             const target = parseFloat(goal.target) || 0;
@@ -965,40 +977,66 @@
                 const addAmount = profitAmount * ((goal.share || 100) / 100);
                 const newCurrent = Math.min(target, cur + addAmount);
                 const isCompletedNow = newCurrent >= target;
-
                 db.collection('roi_goals').doc(goal.id).update({ current: FV.increment(newCurrent - cur) });
                 goal.current = newCurrent;   // aby rýchle po sebe idúce platby necelý cieľ "nepretiekli"
-
                 if (isCompletedNow) {
                     triggerConfetti();
                     toast(`🎉 GRATULUJEME! Cieľ "${goal.name}" bol práve plne splatený (100% / ${target.toFixed(2)} €)!`, 'ok');
                 }
             }
         });
+    }
 
-        const pct = opts.splitPct || getProfitSplitPct();
+    // Kasičky sa plnia z OBRATU (zaplatenej sumy)
+    function creditFunds(amount, sourceName) {
+        amount = round2(amount);
+        if (!(amount > 0)) return null;
+        const FV = firebase.firestore.FieldValue;
+        const pct = getFundSplitPct();
         const split = {
-            investments: profitAmount * pct.investments,
-            stock: profitAmount * pct.stock,
-            payout: profitAmount * pct.payout
+            investments: amount * pct.investments,
+            stock: amount * pct.stock,
+            payout: amount * pct.payout,
+            reserve: amount * pct.reserve
         };
-
-        // atomické pripočítanie (neprepisuje celý dokument)
         db.collection('settings').doc('funds').set({
             investments: FV.increment(split.investments),
             stock: FV.increment(split.stock),
-            payout: FV.increment(split.payout)
+            payout: FV.increment(split.payout),
+            reserve: FV.increment(split.reserve)
         }, { merge: true });
-
-        const profitLogRef = opts.logId ? db.collection('fund_logs').doc(opts.logId) : db.collection('fund_logs').doc();
-        profitLogRef.set({
+        db.collection('fund_logs').add({
             timestamp: new Date().toISOString(),
             timeStr: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            type: `Zisk (${sourceName})`,
-            amount: profitAmount,
+            type: `Obrat (${sourceName})`,
+            amount: amount,
             split: split,
-            note: `Rozdelené do kasičiek a započítané do ROI cieľov`
+            note: 'Obrat rozdelený do kasičiek'
         });
+        return split;
+    }
+
+    // Okno po platbe: koľko dať do ktorej kasičky
+    function showFundSplit(title, amount, split) {
+        if (!(amount > 0) || !split) return;
+        const defs = [['investments', 'Investície', '#34d399'], ['stock', 'Sklad', '#fbbf24'], ['payout', 'Výplata', '#60a5fa'], ['reserve', 'Záloha', '#c084fc']];
+        const vals = {}; let sum = 0, big = defs[0][0];
+        defs.forEach(([k]) => { vals[k] = round2(split[k] || 0); sum += vals[k]; if (vals[k] > vals[big]) big = k; });
+        vals[big] = round2(vals[big] + (round2(amount) - sum));   // aby súčet sedel na cent
+        const rows = defs.filter(([k]) => vals[k] > 0).map(([k, name, color]) =>
+            `<div style="display:flex;justify-content:space-between;align-items:center;padding:14px 4px;border-bottom:1px solid #1e293b"><span style="font-size:20px;font-weight:800;color:${color}">${name}</span><span style="font-size:26px;font-weight:900;color:#f1f5f9">${vals[k].toFixed(2)} €</span></div>`).join('');
+        const old = document.getElementById('fund-split-modal'); if (old) old.remove();
+        const el = document.createElement('div');
+        el.id = 'fund-split-modal';
+        el.style.cssText = 'position:fixed;inset:0;z-index:9000;background:rgba(2,6,23,.85);display:flex;align-items:center;justify-content:center;padding:16px';
+        el.innerHTML = `<div style="background:#0f172a;border:1px solid #334155;border-radius:20px;padding:22px;width:100%;max-width:420px;font-family:inherit">
+            <div style="font-size:12px;font-weight:700;color:#94a3b8;text-transform:uppercase">${esc(title)}${BETA ? ' · TEST' : ''}</div>
+            <div style="font-size:15px;color:#cbd5e1;margin:4px 0 8px">Z platby <b style="color:#34d399">${round2(amount).toFixed(2)} €</b> daj do kasičiek:</div>
+            ${rows}
+            <button style="width:100%;margin-top:18px;padding:14px;border-radius:14px;background:#059669;color:#fff;font-weight:800;font-size:16px;border:0" onclick="document.getElementById('fund-split-modal').remove()">OK</button>
+        </div>`;
+        document.body.appendChild(el);
+        setTimeout(() => { if (el.isConnected) el.remove(); }, 25000);
     }
 
     // Zisk celého účtu (bez položiek za body a bez starých položiek, ktorých zisk už bol pripísaný pri odoslaní)
@@ -1017,42 +1055,45 @@
     }
     const round2 = n => Math.round((parseFloat(n) || 0) * 100) / 100;
 
-    // Pripíše časť zisku účtu do kasičiek/ROI cieľov a zapamätá si, koľko už bolo pripísané (aby sa to dalo vrátiť pri storne)
-    function bookRoomProfit(room, amount, sourceName) {
-        amount = round2(amount);
-        if (!(amount > 0)) return 0;
-        const FV = firebase.firestore.FieldValue;
-        const pct = getProfitSplitPct();   // pri fonde "sklad" >= 100 € ide zisk 50 % investície / 50 % výplata
-        const split = { investments: amount * pct.investments, stock: amount * pct.stock, payout: amount * pct.payout };
-        processProfitToFundsAndGoals(amount, sourceName, { splitPct: pct });
-        db.collection('rooms').doc(room.id).update({
-            profitBooked: FV.increment(amount),
-            'profitBookedSplit.investments': FV.increment(split.investments),
-            'profitBookedSplit.stock': FV.increment(split.stock),
-            'profitBookedSplit.payout': FV.increment(split.payout)
-        });
-        const bs = room.profitBookedSplit || (room.profitBookedSplit = { investments: 0, stock: 0, payout: 0 });
-        room.profitBooked = (parseFloat(room.profitBooked) || 0) + amount;
-        bs.investments = (bs.investments || 0) + split.investments; bs.stock = (bs.stock || 0) + split.stock; bs.payout = (bs.payout || 0) + split.payout;
-        return amount;
+    function roomTotalMoney(room) {
+        let subtotal = 0;
+        (room.cart || []).forEach(i => { if (i.payMode !== 'points') subtotal += (parseFloat(i.product.price) || 0) * (parseFloat(i.qty) || 0); });
+        const card = getActiveCustomerLoyalty();
+        const discPct = card ? (parseFloat(card.discount) || 0) : 0;
+        return { subtotal, discPct, total: subtotal - subtotal * discPct / 100 };
     }
 
-    // Vráti už pripísaný zisk z kasičiek a cieľov (storno položky / vynulovanie účtu po čiastočnej platbe)
+    // Platba (čiastočná aj konečná): obrat -> kasičky, zisk -> ROI ciele. Pri čiastočnej sa zapamätá, čo už bolo pripísané.
+    function bookRoomPayment(room, paid, profit, sourceName, isPartial) {
+        paid = round2(paid); profit = round2(profit);
+        creditRoiGoals(profit);
+        const split = creditFunds(paid, sourceName);
+        if (isPartial) {
+            const FV = firebase.firestore.FieldValue;
+            const sp = split || { investments: 0, stock: 0, payout: 0, reserve: 0 };
+            db.collection('rooms').doc(room.id).update({
+                paidPartial: FV.increment(paid),
+                profitBooked: FV.increment(profit),
+                'paidSplit.investments': FV.increment(sp.investments),
+                'paidSplit.stock': FV.increment(sp.stock),
+                'paidSplit.payout': FV.increment(sp.payout),
+                'paidSplit.reserve': FV.increment(sp.reserve)
+            });
+            room.paidPartial = (parseFloat(room.paidPartial) || 0) + paid;
+            room.profitBooked = (parseFloat(room.profitBooked) || 0) + profit;
+            const ps = room.paidSplit || (room.paidSplit = { investments: 0, stock: 0, payout: 0, reserve: 0 });
+            ps.investments = (ps.investments || 0) + sp.investments; ps.stock = (ps.stock || 0) + sp.stock;
+            ps.payout = (ps.payout || 0) + sp.payout; ps.reserve = (ps.reserve || 0) + sp.reserve;
+        }
+        return { paid, profit, split };
+    }
+
+    // Vráti zo ZISKU z ROI cieľov (storno po čiastočnej platbe)
     function reverseBookedProfit(room, amount) {
         const booked = parseFloat(room.profitBooked) || 0;
         const amt = Math.min(round2(amount), booked);
         if (!(amt > 0)) return;
         const FV = firebase.firestore.FieldValue;
-        const ratio = amt / booked;
-        const bs = room.profitBookedSplit || {};
-        const rev = { investments: (bs.investments || 0) * ratio, stock: (bs.stock || 0) * ratio, payout: (bs.payout || 0) * ratio };
-
-        db.collection('settings').doc('funds').set({
-            investments: FV.increment(-rev.investments),
-            stock: FV.increment(-rev.stock),
-            payout: FV.increment(-rev.payout)
-        }, { merge: true });
-
         roiGoals.forEach(goal => {
             const cur = parseFloat(goal.current) || 0;
             const take = Math.min(cur, amt * ((goal.share || 100) / 100));
@@ -1061,25 +1102,43 @@
                 goal.current = cur - take;
             }
         });
+        db.collection('rooms').doc(room.id).update({ profitBooked: FV.increment(-amt) });
+        room.profitBooked = booked - amt;
+    }
 
+    // Vráti z kasičiek už pripísaný OBRAT (storno položky / zrušenie účtu po čiastočnej platbe)
+    function reverseRoomPaid(room, amount) {
+        const paid = parseFloat(room.paidPartial) || 0;
+        const amt = Math.min(round2(amount), paid);
+        if (!(amt > 0)) return;
+        const FV = firebase.firestore.FieldValue;
+        const ratio = amt / paid;
+        const ps = room.paidSplit || {};
+        const rev = { investments: (ps.investments || 0) * ratio, stock: (ps.stock || 0) * ratio, payout: (ps.payout || 0) * ratio, reserve: (ps.reserve || 0) * ratio };
+        db.collection('settings').doc('funds').set({
+            investments: FV.increment(-rev.investments),
+            stock: FV.increment(-rev.stock),
+            payout: FV.increment(-rev.payout),
+            reserve: FV.increment(-rev.reserve)
+        }, { merge: true });
         db.collection('fund_logs').add({
             timestamp: new Date().toISOString(),
             timeStr: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
             type: 'Storno',
-            fund: 'Kasičky & ciele',
+            fund: 'Kasičky',
             amount: -amt,
-            split: { investments: -rev.investments, stock: -rev.stock, payout: -rev.payout },
-            note: `Vrátený zisk z účtu "${room.name || ''}"`
+            note: `Vrátené z účtu "${room.name || ''}": Inv ${rev.investments.toFixed(2)} | Sklad ${rev.stock.toFixed(2)} | Výplata ${rev.payout.toFixed(2)} | Záloha ${rev.reserve.toFixed(2)} €`
         });
-
         db.collection('rooms').doc(room.id).update({
-            profitBooked: FV.increment(-amt),
-            'profitBookedSplit.investments': FV.increment(-rev.investments),
-            'profitBookedSplit.stock': FV.increment(-rev.stock),
-            'profitBookedSplit.payout': FV.increment(-rev.payout)
+            paidPartial: FV.increment(-amt),
+            'paidSplit.investments': FV.increment(-rev.investments),
+            'paidSplit.stock': FV.increment(-rev.stock),
+            'paidSplit.payout': FV.increment(-rev.payout),
+            'paidSplit.reserve': FV.increment(-rev.reserve)
         });
-        room.profitBooked = booked - amt;
-        bs.investments = (bs.investments || 0) - rev.investments; bs.stock = (bs.stock || 0) - rev.stock; bs.payout = (bs.payout || 0) - rev.payout;
+        room.paidPartial = paid - amt;
+        ps.investments = (ps.investments || 0) - rev.investments; ps.stock = (ps.stock || 0) - rev.stock;
+        ps.payout = (ps.payout || 0) - rev.payout; ps.reserve = (ps.reserve || 0) - rev.reserve;
     }
 
     // --- STORNO ODOSLANEJ POLOŽKY: vráti zisk z kasičiek aj cieľov, sklad a označí transakciu ako prečiarknutú ---
@@ -1090,13 +1149,20 @@
 
         if (prod && isStockTracked(prod)) db.collection('products').doc(prod.id).update({ stock: FV.increment(qty) });
 
-        // Nový model: zisk je v kasičkách len za už zaplatenú časť účtu. Ak po storne klesne zisk účtu pod pripísanú sumu, rozdiel sa vráti.
+        // Ak po storne klesne hodnota účtu pod už zaplatenú sumu, vráti sa rozdiel z kasičiek (a príslušný zisk z ROI cieľov)
         if (!item.profitCounted && !opts.skipProfit) {
             const room = getCurrentRoom();
             if ((parseFloat(room.profitBooked) || 0) > 0) {
                 const newTotal = Math.max(0, roomTotalProfit(room) - itemProfitUnit(item) * qty);
                 const excess = (parseFloat(room.profitBooked) || 0) - newTotal;
                 if (excess > 0.004) reverseBookedProfit(room, excess);
+            }
+            const paid = parseFloat(room.paidPartial) || 0;
+            if (paid > 0) {
+                const mt = roomTotalMoney(room);
+                const newMoney = Math.max(0, mt.total - (parseFloat(item.product.price) || 0) * qty * (1 - mt.discPct / 100));
+                const excessPaid = paid - newMoney;
+                if (excessPaid > 0.004) reverseRoomPaid(room, excessPaid);
             }
         }
 
@@ -1106,11 +1172,12 @@
             const profit = unit * qty;
             if (profit > 0) {
                 const pct = item.splitPct || getProfitSplitPct();
-                const split = { investments: profit * pct.investments, stock: profit * pct.stock, payout: profit * pct.payout };
+                const split = { investments: profit * pct.investments, stock: profit * pct.stock, payout: profit * pct.payout, reserve: profit * (pct.reserve || 0) };
                 db.collection('settings').doc('funds').set({
                     investments: FV.increment(-split.investments),
                     stock: FV.increment(-split.stock),
-                    payout: FV.increment(-split.payout)
+                    payout: FV.increment(-split.payout),
+                    reserve: FV.increment(-split.reserve)
                 }, { merge: true });
 
                 roiGoals.forEach(goal => {
@@ -1250,6 +1317,7 @@
         document.getElementById('fund-investments').innerText = `${fundsState.investments.toFixed(2)} €`;
         document.getElementById('fund-stock').innerText = `${fundsState.stock.toFixed(2)} €`;
         document.getElementById('fund-payout').innerText = `${fundsState.payout.toFixed(2)} €`;
+        document.getElementById('fund-reserve').innerText = `${(parseFloat(fundsState.reserve) || 0).toFixed(2)} €`;
     }
 
     function renderProductProfitConfig() {
@@ -1290,7 +1358,7 @@
         const delta = mode === 'set' ? amount - cur : amount;
         if (delta === 0) { toast('Žiadna zmena.'); return; }
         db.collection('settings').doc('funds').set({ [fundKey]: firebase.firestore.FieldValue.increment(delta) }, { merge: true });
-        const fundNames = { investments: 'Investície', stock: 'Sklad', payout: 'Výplata' };
+        const fundNames = { investments: 'Investície', stock: 'Sklad', payout: 'Výplata', reserve: 'Záloha' };
         db.collection('fund_logs').add({
             timestamp: new Date().toISOString(),
             timeStr: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
@@ -1323,7 +1391,7 @@
 
         db.collection('settings').doc('funds').set({ [fundKey]: firebase.firestore.FieldValue.increment(-amount) }, { merge: true });
 
-        const fundNames = { investments: 'Investície', stock: 'Sklad', payout: 'Výplata' };
+        const fundNames = { investments: 'Investície', stock: 'Sklad', payout: 'Výplata', reserve: 'Záloha' };
         db.collection('fund_logs').add({
             timestamp: new Date().toISOString(),
             timeStr: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
@@ -1347,14 +1415,14 @@
         }
 
         tbody.innerHTML = fundLogs.map(log => {
-            if (log.type.includes('Zisk')) {
+            if (log.type.includes('Zisk') || log.type.includes('Obrat')) {
                 return `
                     <tr class="hover:bg-slate-950/40">
                         <td class="p-3 text-slate-400 text-xs">${log.timeStr}</td>
                         <td class="p-3 text-emerald-400 font-bold">${esc(log.type)}</td>
-                        <td class="p-3 text-slate-300 text-xs">ROI Ciele & Kasičky</td>
+                        <td class="p-3 text-slate-300 text-xs">${log.type.includes('Obrat') ? 'Kasičky (z obratu)' : 'ROI Ciele & Kasičky'}</td>
                         <td class="p-3 font-black text-emerald-400">${(log.voidedAmount || 0) > 0 ? `<s class="text-rose-400/80">+${parseFloat(log.amount).toFixed(2)} €</s>${(parseFloat(log.amount) - log.voidedAmount) > 0.004 ? ` <span class="text-xs">+${(parseFloat(log.amount) - log.voidedAmount).toFixed(2)} €</span>` : ''}` : `+${parseFloat(log.amount).toFixed(2)} €`}</td>
-                        <td class="p-3 text-slate-400 text-xs">Inv: +${log.split.investments.toFixed(2)}€ | Sklad: +${log.split.stock.toFixed(2)}€ | Výplata: +${log.split.payout.toFixed(2)}€</td>
+                        <td class="p-3 text-slate-400 text-xs">Inv: +${log.split.investments.toFixed(2)}€ | Sklad: +${log.split.stock.toFixed(2)}€ | Výplata: +${log.split.payout.toFixed(2)}€ | Záloha: +${(log.split.reserve || 0).toFixed(2)}€</td>
                     </tr>
                 `;
             } else {
@@ -1640,8 +1708,9 @@
         Object.keys(back).forEach(cid => {
             if (back[cid] > 0) db.collection('cards').doc(cid).update({ points: firebase.firestore.FieldValue.increment(-back[cid]) });
         });
-        if ((parseFloat(room.profitBooked) || 0) > 0) reverseBookedProfit(room, room.profitBooked);   // vráť zisk z čiastočných platieb
-        db.collection('rooms').doc(room.id).update({ cart: [], selectedCardId: null, paidPartial: 0, profitBooked: 0, profitBookedSplit: null });
+        if ((parseFloat(room.profitBooked) || 0) > 0) reverseBookedProfit(room, room.profitBooked);   // vráť zisk z ROI cieľov
+        if ((parseFloat(room.paidPartial) || 0) > 0) reverseRoomPaid(room, room.paidPartial);          // vráť obrat z kasičiek
+        db.collection('rooms').doc(room.id).update({ cart: [], selectedCardId: null, paidPartial: 0, profitBooked: 0, profitBookedSplit: null, paidSplit: null });
     }
 
     function renderCart() {
@@ -1905,7 +1974,7 @@
         document.getElementById('cash-change-val').innerText = `${Math.max(0, given - total).toFixed(2)} €`;
     }
 
-    // Čiastočná platba: zníži sumu na účte a pripíše pomernú časť zisku do kasičiek / ROI cieľov
+    // Čiastočná platba: zníži sumu na účte, zaplatený obrat ide do kasičiek a pomerná časť zisku do ROI cieľov
     function submitPartialPayment(method) {
         const room = getCurrentRoom();
         const partial = round2(document.getElementById('partial-amount-input').value);
@@ -1913,12 +1982,12 @@
         if (partial <= 0 || partial >= due) { toast("Neplatná suma."); return; }
 
         const remainingProfit = Math.max(0, roomTotalProfit(room) - (parseFloat(room.profitBooked) || 0));
-        const profitPart = bookRoomProfit(room, remainingProfit * (partial / due), `Čiastočná platba ${method} (${room.name || 'účet'})`);
+        const res = bookRoomPayment(room, partial, remainingProfit * (partial / due), `Čiastočná platba ${method} (${room.name || 'účet'})`, true);
 
-        db.collection('rooms').doc(room.id).update({ paidPartial: firebase.firestore.FieldValue.increment(partial) });
         document.getElementById('partial-amount-input').value = '';
-        toast(`Zaplatené ${partial.toFixed(2)} € (${method}). Zostáva ${(due - partial).toFixed(2)} €. Do kasičiek: ${profitPart.toFixed(2)} €.`, 'ok');
+        toast(`Zaplatené ${partial.toFixed(2)} € (${method}). Zostáva ${(due - partial).toFixed(2)} €.`, 'ok');
         closePaymentModal();
+        showFundSplit(`Čiastočná platba ${partial.toFixed(2)} € · ${method}`, partial, res.split);
     }
 
     let payBusy = false;
@@ -1927,16 +1996,17 @@
         payBusy = true; setTimeout(() => { payBusy = false; }, 1500);   // ochrana pred dvojitým kliknutím
 
         const room = getCurrentRoom();
-        // zisk, ktorý sa ešte nepripísal (časť sa mohla pripísať pri čiastočných platbách)
-        const totalProfit = round2(Math.max(0, roomTotalProfit(room) - (parseFloat(room.profitBooked) || 0)));
+        // zisk, ktorý sa ešte nepripísal do ROI cieľov (časť mohla ísť pri čiastočných platbách)
+        const remainingProfit = round2(Math.max(0, roomTotalProfit(room) - (parseFloat(room.profitBooked) || 0)));
+        const paidTotal = parseFloat(document.getElementById('total-val').innerText) || 0;   // zostáva zaplatiť
 
-        const paidTotal = parseFloat(document.getElementById('total-val').innerText) || 0;
-        processProfitToFundsAndGoals(totalProfit, `Platba ${method} (${room.name || 'účet'})`);
+        const res = bookRoomPayment(room, paidTotal, remainingProfit, `Platba ${method} (${room.name || 'účet'})`, false);
         db.collection('payments').add({ timestamp: new Date().toISOString(), room: room.name || '', method: String(method), total: paidTotal, cardId: room.selectedCardId || null }).catch(() => {});
-        toast(`Platba úspešná! Do kasičiek a ROI cieľov pripísaných ${totalProfit.toFixed(2)} €.`, 'ok');
+        toast('Platba úspešná!', 'ok');
 
-        db.collection('rooms').doc(room.id).update({ cart: [], selectedCardId: null, paidPartial: 0, profitBooked: 0, profitBookedSplit: null });
+        db.collection('rooms').doc(room.id).update({ cart: [], selectedCardId: null, paidPartial: 0, profitBooked: 0, profitBookedSplit: null, paidSplit: null });
         closePaymentModal();
+        showFundSplit(`Platba ${paidTotal.toFixed(2)} € · ${method}`, paidTotal, res.split);
     }
 
     function openProductModal(editId = null) {
